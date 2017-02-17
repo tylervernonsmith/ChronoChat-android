@@ -15,11 +15,12 @@ public class PingService extends IntentService {
 
     private static final String HOST = "localhost";
     private static final String NAME_URI = "/localhost/nfd/status/general";
-    private static final String TAG = NDNService.class.getSimpleName();
+    private static final String TAG = PingService.class.getSimpleName();
 
     private static final Face FACE = new Face(HOST);
     private static final Name NAME = new Name(NAME_URI);
 
+    /* Implements callbacks for Face.expressInterest() */
     private static final class PingHandler implements OnData, OnTimeout {
         @Override
         public void onData(Interest interest, Data data) {
