@@ -13,15 +13,10 @@ import java.io.IOException;
 
 public class NDNService extends Service {
 
-    private final IBinder binder = new NDNBinder();
     private final Face localhost = new Face("localhost");
-    private boolean bound = false, destroyed = false;
+    private boolean destroyed = false;
 
     private final String TAG = NDNService.class.getSimpleName();
-
-    public class NDNBinder extends Binder {
-        NDNService getService() { return NDNService.this; }
-    }
 
     // Thread for processing events on the face
     private final Thread processEventsThread = new Thread(new Runnable() {
@@ -30,11 +25,13 @@ public class NDNService extends Service {
             Log.d(TAG, "started processEventsThread");
             while (!destroyed) {
                 try {
-                    Thread.sleep(100); // avoid hammering the CPU
                     localhost.processEvents();
-                } catch (InterruptedException | IOException | EncodingException e) {
+                } catch (IOException | EncodingException e) {
                     e.printStackTrace();
                 }
+                try {
+                    Thread.sleep(100); // avoid hammering the CPU
+                } catch (InterruptedException e) {}
             }
             Log.d(TAG, "stopped processEventsThread");
         }
@@ -46,19 +43,11 @@ public class NDNService extends Service {
     }
 
     @Override
-    public IBinder onBind(Intent intent) {
-        bound = true;
-        return binder;
-    }
-
-    @Override
-    public boolean onUnbind(Intent intent) {
-        bound = false;
-        return false;  // no need to call onRebind()
-    }
+    public IBinder onBind(Intent _) { return null; }
 
     @Override
     public void onDestroy() {
+        Log.d(TAG, "onDestroy");
         destroyed = true; // kills processEventsThread
     }
 
