@@ -21,9 +21,6 @@
             android:name=".NDNService"
             android:enabled="true"
             android:exported="false" />
-        <service
-            android:name=".PingService"
-            android:exported="false"></service>
     </application>
 
 </manifest>
