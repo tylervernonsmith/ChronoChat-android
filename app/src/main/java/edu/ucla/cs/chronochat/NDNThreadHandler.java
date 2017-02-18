@@ -30,7 +30,9 @@ public abstract class NDNThreadHandler {
                 }
                 try {
                     Thread.sleep(500); // avoid hammering the CPU
-                } catch (InterruptedException e) {}
+                } catch (InterruptedException e) {
+                    Log.d(TAG, "thread interrupted");
+                }
             }
             Log.d(TAG, "thread stopped");
         }

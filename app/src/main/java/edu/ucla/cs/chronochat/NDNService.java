@@ -77,6 +77,9 @@ public class NDNService extends Service {
     private static final PingHandler handler = new PingHandler();
 
     private static final PingThreadHandler pingThreadHandler = new PingThreadHandler(FACE);
+    private static final RegisterPrefixThreadHandler registerPrefixThreadHandler =
+            new RegisterPrefixThreadHandler(FACE, new Name("/test"));
+
 
     @Override
     public void onCreate() {
@@ -95,7 +98,8 @@ public class NDNService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
 //        handler.startPing();
-        pingThreadHandler.start();
+        //pingThreadHandler.start();
+        registerPrefixThreadHandler.start();
         return START_STICKY;
     }
 
