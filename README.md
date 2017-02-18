@@ -1,1 +1,1 @@
-# ChronoSync-android
+# ChronoChat-android
