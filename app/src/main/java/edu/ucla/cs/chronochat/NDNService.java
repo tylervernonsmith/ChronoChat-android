@@ -23,7 +23,8 @@ public class NDNService extends Service {
     private static final String TAG = NDNService.class.getSimpleName();
 
     private static final Face FACE = new Face(HOST);
-    private static final Name NAME = new Name(NAME_URI);    private boolean destroyed = false;
+    private static final Name NAME = new Name(NAME_URI);
+    private boolean destroyed = false;
 
     // Thread for processing events on the face
     private final Thread processEventsThread = new Thread(new Runnable() {
@@ -75,9 +76,11 @@ public class NDNService extends Service {
 
     private static final PingHandler handler = new PingHandler();
 
+    private static final PingThreadHandler pingThreadHandler = new PingThreadHandler(FACE);
+
     @Override
     public void onCreate() {
-        processEventsThread.start();
+        //processEventsThread.start();
     }
 
     @Override
@@ -91,7 +94,8 @@ public class NDNService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        handler.startPing();
+//        handler.startPing();
+        pingThreadHandler.start();
         return START_STICKY;
     }
 
