@@ -21,6 +21,10 @@
             android:name=".NDNService"
             android:enabled="true"
             android:exported="false" />
+        <service
+            android:name=".ChronoSyncService"
+            android:enabled="true"
+            android:exported="false" />
     </application>
 
 </manifest>
