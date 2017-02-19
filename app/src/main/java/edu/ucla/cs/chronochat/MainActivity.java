@@ -31,11 +31,11 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        IntentFilter statusIntentFilter = new IntentFilter(ChronoSyncService.BROADCAST_ACTION);
-        LocalBroadcastManager.getInstance(this).registerReceiver(
-                broadcastReceiver,
-                statusIntentFilter);
-
+//        IntentFilter statusIntentFilter = new IntentFilter(ChronoSyncService.BROADCAST_ACTION);
+//        LocalBroadcastManager.getInstance(this).registerReceiver(
+//                broadcastReceiver,
+//                statusIntentFilter);
+        Log.d(TAG, "onCreate");
         Intent intent = new Intent(this, ChronoSyncService.class);
         startService(intent);
     }
