@@ -11,7 +11,7 @@ import java.io.IOException;
 
 public abstract class NDNThreadHandler {
 
-    protected final Face face;
+    protected final NDNService service;
 
     private boolean stopped = false;
 
@@ -24,7 +24,7 @@ public abstract class NDNThreadHandler {
             onThreadStart();
             while (!stopped) {
                 try {
-                    face.processEvents();
+                    service.getFace().processEvents();
                 } catch (IOException | EncodingException e) {
                     e.printStackTrace();
                 }
@@ -39,8 +39,8 @@ public abstract class NDNThreadHandler {
     });
 
 
-    public NDNThreadHandler(Face face) {
-        this.face = face;
+    public NDNThreadHandler(NDNService service) {
+        this.service = service;
     }
 
     public void start() { thread.start(); }

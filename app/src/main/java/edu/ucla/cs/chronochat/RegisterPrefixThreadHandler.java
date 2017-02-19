@@ -2,6 +2,7 @@ package edu.ucla.cs.chronochat;
 
 import android.util.Log;
 
+import net.named_data.jndn.Data;
 import net.named_data.jndn.Face;
 import net.named_data.jndn.Interest;
 import net.named_data.jndn.InterestFilter;
@@ -13,6 +14,7 @@ import net.named_data.jndn.security.SecurityException;
 import net.named_data.jndn.security.identity.IdentityManager;
 import net.named_data.jndn.security.identity.MemoryIdentityStorage;
 import net.named_data.jndn.security.identity.MemoryPrivateKeyStorage;
+import net.named_data.jndn.util.Blob;
 
 import java.io.IOException;
 
@@ -22,12 +24,10 @@ public class RegisterPrefixThreadHandler
         implements OnInterestCallback, OnRegisterFailed {
 
     private static final String TAG = RegisterPrefixThreadHandler.class.getSimpleName();
-    private final Name prefix;
     private KeyChain keyChain;
 
-    public RegisterPrefixThreadHandler(Face face, Name prefix) {
-        super(face);
-        this.prefix = prefix;
+    public RegisterPrefixThreadHandler(NDNService service) {
+        super(service);
     }
 
     @Override
@@ -43,7 +43,7 @@ public class RegisterPrefixThreadHandler
         MemoryPrivateKeyStorage privateKeyStorage = new MemoryPrivateKeyStorage();
         IdentityManager identityManager = new IdentityManager(identityStorage, privateKeyStorage);
         keyChain = new KeyChain(identityManager);
-        keyChain.setFace(face);
+        keyChain.setFace(service.getFace());
     }
 
     private void setCommandSigningInfo() {
@@ -65,12 +65,13 @@ public class RegisterPrefixThreadHandler
                 defaultCertificateName = new Name("/bogus/certificate/name");
             }
         }
-        face.setCommandSigningInfo(keyChain, defaultCertificateName);
+        service.getFace().setCommandSigningInfo(keyChain, defaultCertificateName);
     }
 
     private void registerPrefix() {
         try {
-            face.registerPrefix(prefix, this, this);
+            final Name prefix = service.getPrefix();
+            service.getFace().registerPrefix(prefix, this, this);
             Log.d(TAG, "prefix registered: " + prefix.toString());
         } catch (IOException | SecurityException e) {
             Log.d(TAG, "exception when registering prefix: " + e.getMessage());
@@ -82,8 +83,27 @@ public class RegisterPrefixThreadHandler
     @Override
     public void onInterest(Name prefix, Interest interest, Face face, long interestFilterId,
                            InterestFilter filterData) {
+
         // NOTE: this thread continues and should be explicitly stopped by the NDNService!
-        Log.d(TAG, "prefix interest recv'd");
+        Log.d(TAG, "prefix interest received");
+
+//        Name interestName = interest.getName();
+//        String lastComp = interestName.get(interestName.size() - 1).toEscapedString();
+//        Log.d(TAG, "prefix interest received: " + lastComp);
+//        int comp = Integer.parseInt(lastComp) - 1;
+//
+//        Data data = new Data();
+//        data.setName(new Name(interestName));
+//        Blob blob;
+//        if (ndnActivity.dataHistory.size() > comp) {
+//            blob = new Blob(ndnActivity.dataHistory.get(comp).getBytes());
+//            data.setContent(blob);
+//            try {
+//                face.putData(data);
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+//        }
         // TODO: Broadcast result
     }
 

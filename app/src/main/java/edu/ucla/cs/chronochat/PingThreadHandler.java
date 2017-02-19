@@ -19,14 +19,14 @@ public class PingThreadHandler extends NDNThreadHandler implements OnData, OnTim
     private static final Name NAME = new Name(NAME_URI);
 
 
-    public PingThreadHandler(Face face) {
-        super(face);
+    public PingThreadHandler(NDNService service) {
+        super(service);
     }
 
     @Override
     protected void onThreadStart() {
         try {
-            face.expressInterest(NAME, PingThreadHandler.this, PingThreadHandler.this);
+            service.getFace().expressInterest(NAME, this, this);
         } catch (IOException e) {
             e.printStackTrace();
         }
