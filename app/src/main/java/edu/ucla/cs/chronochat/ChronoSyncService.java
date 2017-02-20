@@ -20,14 +20,12 @@ import net.named_data.jndn.security.identity.IdentityManager;
 import net.named_data.jndn.security.identity.MemoryIdentityStorage;
 import net.named_data.jndn.security.identity.MemoryPrivateKeyStorage;
 import net.named_data.jndn.sync.ChronoSync2013;
-import net.named_data.jndn.util.Blob;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
 
-public class ChronoSyncService extends Service {
+public abstract class ChronoSyncService extends Service {
 
     private static final String FACE_URI = "localhost",
                                 TAG = ChronoSyncService.class.getSimpleName();
@@ -40,11 +38,9 @@ public class ChronoSyncService extends Service {
 
     private Face face = new Face(FACE_URI);
     private Name dataPrefix = new Name("/test"), broadcastPrefix = new Name("/testbroadcast"); // FIXME
-    private ChronoSync2013 sync;
-    private ArrayList<String> sentMessages;
+    protected ChronoSync2013 sync;
     private boolean networkThreadShouldStop;
     private KeyChain keyChain;
-
 
     private final Thread networkThread = new Thread(new Runnable() {
         @Override
@@ -72,15 +68,6 @@ public class ChronoSyncService extends Service {
             Log.d(TAG, "network thread stopped");
         }
     });
-
-
-    @Override
-    public IBinder onBind(Intent _) { return null; }
-
-
-    private void send(String message) {
-        sentMessages.add(message);
-    }
 
     private void startNetworkThread() {
         networkThread.start();
@@ -149,7 +136,6 @@ public class ChronoSyncService extends Service {
         Log.d(TAG, "current seqnum " + sync.getSequenceNo());
     }
 
-
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         // TODO handle intent
@@ -158,32 +144,24 @@ public class ChronoSyncService extends Service {
         return START_STICKY;
     }
 
+    @Override
+    public IBinder onBind(Intent _) { return null; }
+
 
     /***** Callbacks for NDN network thread *****/
+
+    protected abstract void onDataInterest(Name prefix, Interest interest, Face face,
+                                           long interestFilterId, InterestFilter filterData);
+    protected abstract void onReceivedChronoSyncState(List syncStates, boolean isRecovery);
+    protected abstract void onChronoSyncInitialized();
+    protected abstract void onDataPrefixRegisterFailed(Name prefix);
+    protected abstract void onBroadcastPrefixRegisterFailed(Name prefix);
 
     private final OnInterestCallback OnDataInterest = new OnInterestCallback() {
         @Override
         public void onInterest(Name prefix, Interest interest, Face face, long interestFilterId,
                                InterestFilter filterData) {
-
-            Name interestName = interest.getName();
-            Log.d(TAG, "data interest received: " + interestName.toString());
-
-            Name.Component lastInterestComponent = interestName.get(-1);
-            int requestedSeqNum = Integer.parseInt(lastInterestComponent.toEscapedString());
-
-            if (sync.getSequenceNo() >= requestedSeqNum) {
-                Log.d(TAG, "responding to data interest");
-                Data response = new Data(interestName);
-                Blob content = new Blob(sentMessages.get(requestedSeqNum).getBytes());
-                response.setContent(content);
-                try {
-                    face.putData(response);
-                } catch (IOException e) {
-                    Log.d(TAG, "failure when responding to data interest");
-                    e.printStackTrace();
-                }
-            }
+            onDataInterest(prefix, interest, face, interestFilterId, filterData);
         }
     };
 
@@ -191,8 +169,7 @@ public class ChronoSyncService extends Service {
             new ChronoSync2013.OnReceivedSyncState() {
                 @Override
                 public void onReceivedSyncState(List syncStates, boolean isRecovery) {
-                    Log.d(TAG, "sync state received");
-                    // TODO
+                    onReceivedChronoSyncState(syncStates, isRecovery);
                 }
             };
 
@@ -200,19 +177,16 @@ public class ChronoSyncService extends Service {
             new ChronoSync2013.OnInitialized() {
                 @Override
                 public void onInitialized() {
-                    Log.d(TAG, "ChronoSync Initialized");
-                    // TODO
+                    onChronoSyncInitialized();
                 }
             };
-
 
     private final OnRegisterFailed OnDataPrefixRegisterFailed =
             new OnRegisterFailed() {
                 @Override
                 public void onRegisterFailed(Name prefix) {
                     stopNetworkThread();
-                    Log.d(TAG, "failed to register application prefix " + prefix.toString());
-                    // TODO
+                    onDataPrefixRegisterFailed(prefix);
                 }
             };
 
@@ -220,8 +194,7 @@ public class ChronoSyncService extends Service {
         @Override
         public void onRegisterFailed(Name prefix) {
             stopNetworkThread();
-            Log.d(TAG, "failed to register broadcast prefix " + prefix.toString());
-            // TODO
+            onBroadcastPrefixRegisterFailed(prefix);
         }
     };
 }

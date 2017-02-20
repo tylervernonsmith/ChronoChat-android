@@ -36,7 +36,7 @@ public class MainActivity extends AppCompatActivity {
 //                broadcastReceiver,
 //                statusIntentFilter);
         Log.d(TAG, "onCreate");
-        Intent intent = new Intent(this, ChronoSyncService.class);
+        Intent intent = new Intent(this, ChronoChatService.class);
         startService(intent);
     }
 

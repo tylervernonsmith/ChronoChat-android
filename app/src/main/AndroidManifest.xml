@@ -18,7 +18,7 @@
         </activity>
 
         <service
-            android:name=".ChronoSyncService"
+            android:name=".ChronoChatService"
             android:enabled="true"
             android:exported="false" />
     </application>
