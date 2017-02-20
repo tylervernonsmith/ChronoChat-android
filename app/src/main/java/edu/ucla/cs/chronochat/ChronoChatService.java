@@ -7,6 +7,7 @@ import net.named_data.jndn.Face;
 import net.named_data.jndn.Interest;
 import net.named_data.jndn.InterestFilter;
 import net.named_data.jndn.Name;
+import net.named_data.jndn.security.SecurityException;
 import net.named_data.jndn.util.Blob;
 
 import java.io.IOException;
@@ -17,12 +18,8 @@ import java.util.List;
 public class ChronoChatService extends ChronoSyncService {
 
     private static final String TAG = ChronoChatService.class.getSimpleName();
-    private ArrayList<String> sentMessages;
 
-    private void send(String message) {
-        sentMessages.add(message);
-    }
-
+    @Override
     protected void onDataInterest(Name prefix, Interest interest, Face face,
                                   long interestFilterId, InterestFilter filterData) {
 
@@ -32,10 +29,10 @@ public class ChronoChatService extends ChronoSyncService {
         Name.Component lastInterestComponent = interestName.get(-1);
         int requestedSeqNum = Integer.parseInt(lastInterestComponent.toEscapedString());
 
-        if (sync.getSequenceNo() >= requestedSeqNum) {
+        if (lastPublishedSeqNum() >= requestedSeqNum) {
             Log.d(TAG, "responding to data interest");
             Data response = new Data(interestName);
-            Blob content = new Blob(sentMessages.get(requestedSeqNum).getBytes());
+            Blob content = new Blob(sentData.get(requestedSeqNum).getBytes());
             response.setContent(content);
             try {
                 face.putData(response);
@@ -46,23 +43,40 @@ public class ChronoChatService extends ChronoSyncService {
         }
     }
 
+    @Override
     protected void onReceivedChronoSyncState(List syncStates, boolean isRecovery) {
         Log.d(TAG, "sync state received");
         // TODO
     }
 
+    @Override
     protected void onChronoSyncInitialized() {
         Log.d(TAG, "ChronoSync Initialized");
-        // TODO
+        // TODO: Announce success via broadcast intent?
     }
 
+    @Override
     protected void onDataPrefixRegisterFailed(Name prefix) {
         Log.d(TAG, "failed to register application prefix " + prefix.toString());
-        // TODO
+        // TODO: Announce failure via broadcast intent?
     }
 
+    @Override
     protected void onBroadcastPrefixRegisterFailed(Name prefix) {
         Log.d(TAG, "failed to register broadcast prefix " + prefix.toString());
-        // TODO
+        // TODO: Announce failure via broadcast intent?
+    }
+
+    @Override
+    protected void publishSeqNumsIfNeeded() {
+        while(lastPublishedSeqNum() < lastDataSeqNum()) {
+            try {
+                sync.publishNextSequenceNo();
+                Log.d(TAG, "published seqnum " + lastPublishedSeqNum());
+            } catch (IOException | SecurityException e) {
+                Log.d(TAG, "failed to publish seqnum " + (lastPublishedSeqNum() + 1));
+                e.printStackTrace();
+            }
+        }
     }
 }

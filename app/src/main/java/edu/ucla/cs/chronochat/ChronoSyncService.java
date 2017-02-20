@@ -22,7 +22,9 @@ import net.named_data.jndn.security.identity.MemoryPrivateKeyStorage;
 import net.named_data.jndn.sync.ChronoSync2013;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 
 public abstract class ChronoSyncService extends Service {
@@ -36,11 +38,15 @@ public abstract class ChronoSyncService extends Service {
     public static final String
             ACTION_SEND = "edu.ucla.cs.ChronoChat.ChronoSyncService.ACTION_SEND";
 
+    private String username = "testuser"; // FIXME
     private Face face = new Face(FACE_URI);
-    private Name dataPrefix = new Name("/test"), broadcastPrefix = new Name("/testbroadcast"); // FIXME
+    private Name dataPrefix = new Name("/test/" + username),   // FIXME
+                 broadcastPrefix = new Name("/test/broadcast"); // FIXME
     protected ChronoSync2013 sync;
     private boolean networkThreadShouldStop;
     private KeyChain keyChain;
+    protected Map<String, Integer> highestRequestedSeqNum;
+    protected ArrayList<String> sentData = new ArrayList<String>();
 
     private final Thread networkThread = new Thread(new Runnable() {
         @Override
@@ -52,7 +58,7 @@ public abstract class ChronoSyncService extends Service {
             registerDataPrefix();
             setUpChronoSync();
             while (!networkThreadShouldStop) {
-                // TODO: publish seqnum if necessary
+                publishSeqNumsIfNeeded();
                 try {
                     face.processEvents();
                 } catch (IOException | EncodingException e) {
@@ -132,9 +138,14 @@ public abstract class ChronoSyncService extends Service {
         }
     }
 
+    protected abstract void publishSeqNumsIfNeeded();
+
     private void logSeqNum() {
         Log.d(TAG, "current seqnum " + sync.getSequenceNo());
     }
+
+    public int lastDataSeqNum() { return sentData.size() - 1; }
+    public long lastPublishedSeqNum() { return sync.getSequenceNo(); }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
