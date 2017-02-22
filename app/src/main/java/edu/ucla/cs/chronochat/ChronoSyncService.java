@@ -6,6 +6,8 @@ import android.os.IBinder;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
+import com.google.protobuf.UninitializedMessageException;
+
 import net.named_data.jndn.Data;
 import net.named_data.jndn.Face;
 import net.named_data.jndn.Interest;
@@ -14,6 +16,7 @@ import net.named_data.jndn.Name;
 import net.named_data.jndn.OnData;
 import net.named_data.jndn.OnInterestCallback;
 import net.named_data.jndn.OnRegisterFailed;
+import net.named_data.jndn.OnRegisterSuccess;
 import net.named_data.jndn.OnTimeout;
 import net.named_data.jndn.encoding.EncodingException;
 import net.named_data.jndn.security.KeyChain;
@@ -26,14 +29,17 @@ import net.named_data.jndn.util.Blob;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Random;
 
 
 public abstract class ChronoSyncService extends Service {
 
     private static final String FACE_URI = "localhost",
-                                TAG = ChronoSyncService.class.getSimpleName();
+                                TAG = ChronoSyncService.class.getSimpleName(),
+                                BROADCAST_BASE_PREFIX = "/ndn/broadcast",
+                                APP_NAME = "chronochat-android";
     private static final long SESSION_NUM = 0; // FIXME?
     private static final double SYNC_LIFETIME = 5000.0; // FIXME?
 
@@ -41,14 +47,20 @@ public abstract class ChronoSyncService extends Service {
     public static final String
             ACTION_SEND = "edu.ucla.cs.ChronoChat.ChronoSyncService.ACTION_SEND";
 
-    protected String username = "testuser"; // FIXME
+    protected final String username = Integer.toString(new Random().nextInt(Integer.MAX_VALUE)); // FIXME
+    protected final String chatroom = "chatroom";
+    protected final String appBasePrefix = ""; // FIXME
+    protected final String commonNameComponent = APP_NAME + "/" + chatroom;
     private Face face = new Face(FACE_URI);
-    private Name dataPrefix = new Name("/test/" + username),   // FIXME
-                 broadcastPrefix = new Name("/test/broadcast"); // FIXME
+    private Name dataPrefix = new Name(appBasePrefix + "/" +
+            commonNameComponent + "/" + username), // FIXME
+                 broadcastPrefix = new Name(BROADCAST_BASE_PREFIX + "/" +
+                         commonNameComponent); // FIXME
     protected ChronoSync2013 sync;
     private boolean networkThreadShouldStop;
+    protected boolean syncInitialized = false;
     private KeyChain keyChain;
-    protected Map<String, Long> highestRequestedSeqNums;
+    protected HashMap<String, Long> highestRequestedSeqNums = new HashMap<String, Long>();
     protected ArrayList<String> sentData = new ArrayList<String>();
 
     private final Thread networkThread = new Thread(new Runnable() {
@@ -56,10 +68,16 @@ public abstract class ChronoSyncService extends Service {
         public void run () {
             networkThreadShouldStop = false;
             Log.d(TAG, "network thread started");
-            initializeKeyChain();
-            setCommandSigningInfo();
-            registerDataPrefix();
-            setUpChronoSync();
+            try {
+                initializeKeyChain();
+                setCommandSigningInfo();
+                registerDataPrefix();
+                setUpChronoSync();
+            } catch (Exception e) {
+                stopNetworkThread();
+                e.printStackTrace();
+                // TODO raise some kind of error/uninitialized flag?
+            }
             while (!networkThreadShouldStop) {
                 publishSeqNumsIfNeeded();
                 try {
@@ -112,7 +130,7 @@ public abstract class ChronoSyncService extends Service {
             } catch (SecurityException e2) {
                 Log.d(TAG, "unable to create default identity");
                 e.printStackTrace();
-                defaultCertificateName = new Name("/bogus/certificate/name");
+                defaultCertificateName = new Name("/bogus/certificate/name"); // FIXME
             }
         }
         face.setCommandSigningInfo(keyChain, defaultCertificateName);
@@ -120,9 +138,9 @@ public abstract class ChronoSyncService extends Service {
 
     private void registerDataPrefix() {
         try {
-            Log.d(TAG, "registering data prefix: " + dataPrefix.toString());
-            face.registerPrefix(dataPrefix, OnDataInterest, OnDataPrefixRegisterFailed);
-            Log.d(TAG, "successfully registered data prefix");
+            Log.d(TAG, "registering data prefix...");
+            face.registerPrefix(dataPrefix, OnDataInterest, OnDataPrefixRegisterFailed,
+                    OnDataPrefixRegisterSuccess);
         } catch (IOException | SecurityException e) {
             Log.d(TAG, "exception when registering data prefix: " + e.getMessage());
             e.printStackTrace();
@@ -130,51 +148,53 @@ public abstract class ChronoSyncService extends Service {
     }
 
     private void setUpChronoSync() {
+        Log.d(TAG, "initializing ChronoSync...");
         try {
             sync = new ChronoSync2013(OnReceivedChronoSyncState, OnChronoSyncInitialized,
                     dataPrefix, broadcastPrefix, SESSION_NUM, face, keyChain,
                     keyChain.getDefaultCertificateName(), SYNC_LIFETIME,
                     OnBroadcastPrefixRegisterFailed);
         } catch (IOException | SecurityException e) {
-            Log.d(TAG, "exception when setting up ChronoSync: " + e.getMessage());
-            e.printStackTrace();
+            Log.d(TAG, "exception when initializing ChronoSync: " + e.getMessage());
+            stopNetworkThread();
         }
     }
 
     private void processSyncState(ChronoSync2013.SyncState syncState) {
-        String dataPrefix = syncState.getDataPrefix();
+        String syncDataPrefix = syncState.getDataPrefix();
         long syncSeqNum = syncState.getSequenceNo();
 
-        if (dataPrefix.contains(username)) {
+        if (syncDataPrefix.toString().equals(this.dataPrefix.toString())) {
             // Ignore sync state for our own user (FIXME is this really needed?)
             Log.d(TAG, "ignoring sync state for own user");
-        } else if (!highestRequestedSeqNums.keySet().contains(dataPrefix)) {
-            // If we don't know about this user yet, add them to our list
-            Log.d(TAG, "adding newly discovered sync prefix " + dataPrefix);
-            highestRequestedSeqNums.put(dataPrefix, syncSeqNum);
         } else {
-            requestMissingSeqNums(dataPrefix, syncSeqNum);
+            if (!highestRequestedSeqNums.keySet().contains(syncDataPrefix)) {
+                // If we don't know about this user yet, add them to our list
+                Log.d(TAG, "recording newly discovered sync prefix " + syncDataPrefix);
+                highestRequestedSeqNums.put(syncDataPrefix, 0l);
+            }
+            requestMissingSeqNums(syncDataPrefix, syncSeqNum);
         }
     }
 
-    private void requestMissingSeqNums(String dataPrefix, long syncSeqNum) {
-        long highestRequestedSeqNum = highestRequestedSeqNums.get(dataPrefix);
+    private void requestMissingSeqNums(String syncDataPrefix, long syncSeqNum) {
+        long highestRequestedSeqNum = highestRequestedSeqNums.get(syncDataPrefix);
         while (syncSeqNum > highestRequestedSeqNum) {
             long missingSeqNum = highestRequestedSeqNum + 1;
-            String missingDataNameStr = dataPrefix + "/" + missingSeqNum;
+            String missingDataNameStr = syncDataPrefix + "/" + missingSeqNum;
             Name missingDataName = new Name(missingDataNameStr);
             Log.d(TAG, "requesting missing seqnum " + missingSeqNum);
             expressDataInterest(missingDataName);
             highestRequestedSeqNum = missingSeqNum;
         }
-        highestRequestedSeqNums.put(dataPrefix, syncSeqNum);
+        highestRequestedSeqNums.put(syncDataPrefix, syncSeqNum);
     }
 
 
     private void expressDataInterest(Name dataName) {
-        Log.d(TAG, "requesting interest for " + dataName.toString());
+        Log.d(TAG, "expressing interest for " + dataName.toString());
         try {
-            face.expressInterest(new Name(dataPrefix), OnReceivedSyncData,
+            face.expressInterest(dataName, OnReceivedSyncData,
                     OnSyncDataInterestTimeout);
         } catch (IOException e) {
             Log.d(TAG, "failed to express data interest");
@@ -183,6 +203,7 @@ public abstract class ChronoSyncService extends Service {
     }
 
     protected void publishSeqNumsIfNeeded() {
+        if (!syncInitialized) return;
         while(lastPublishedSeqNum() < lastDataSeqNum()) {
             try {
                 sync.publishNextSequenceNo();
@@ -244,7 +265,7 @@ public abstract class ChronoSyncService extends Service {
                     // FIXME handle recovery states properly (?)
                     for (ChronoSync2013.SyncState syncState :
                             (List<ChronoSync2013.SyncState>) syncStates) {
-                        Log.d(TAG, "received sync state " + syncState.toString());
+                        Log.d(TAG, "received sync state for " + syncState.getDataPrefix());
                         processSyncState(syncState);
                     }
                     Log.d(TAG, "finished processing " + syncStates.size() + " sync states");
@@ -255,20 +276,28 @@ public abstract class ChronoSyncService extends Service {
             new ChronoSync2013.OnInitialized() {
                 @Override
                 public void onInitialized() {
-                    Log.d(TAG, "ChronoSync Initialized");
+                    Log.d(TAG, "ChronoSync initialization complete; seqnum is now " +
+                            sync.getSequenceNo());
+                    syncInitialized = true;
                     // TODO: Announce success via broadcast intent?
                 }
             };
 
-    private final OnRegisterFailed OnDataPrefixRegisterFailed =
-            new OnRegisterFailed() {
-                @Override
-                public void onRegisterFailed(Name prefix) {
-                    stopNetworkThread();
-                    Log.d(TAG, "failed to register application prefix " + prefix.toString());
-                    // TODO: Announce failure via broadcast intent?
-                }
-            };
+    private final OnRegisterSuccess OnDataPrefixRegisterSuccess = new OnRegisterSuccess() {
+        @Override
+        public void onRegisterSuccess(Name prefix, long registeredPrefixId) {
+            Log.d(TAG, "successfully registered data prefix: " + prefix);
+        }
+    };
+
+    private final OnRegisterFailed OnDataPrefixRegisterFailed = new OnRegisterFailed() {
+        @Override
+        public void onRegisterFailed(Name prefix) {
+            stopNetworkThread();
+            Log.d(TAG, "failed to register application prefix " + prefix.toString());
+            // TODO: Announce failure via broadcast intent?
+        }
+    };
 
     private final OnRegisterFailed OnBroadcastPrefixRegisterFailed = new OnRegisterFailed() {
         @Override
@@ -282,6 +311,8 @@ public abstract class ChronoSyncService extends Service {
     public final OnData OnReceivedSyncData = new OnData() {
         @Override
         public void onData(Interest interest, Data data) {
+            Blob blob = data.getContent();
+            Log.d(TAG, "received sync data for " + interest.getName() + ":\n" + blob.toString());
             // TODO: Broadcast received data
         }
     };
@@ -289,9 +320,10 @@ public abstract class ChronoSyncService extends Service {
     public final OnTimeout OnSyncDataInterestTimeout = new OnTimeout() {
         @Override
         public void onTimeout(Interest interest) {
-            Log.d(TAG, "data interest timeout");
+            Name name = interest.getName();
+            Log.d(TAG, "timed out waiting for " + name);
             // FIXME? we just try again...
-            expressDataInterest(interest.getName());
+            expressDataInterest(name);
         }
     };
 }
