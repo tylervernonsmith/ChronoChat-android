@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.os.IBinder;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.google.protobuf.UninitializedMessageException;
 
@@ -42,10 +43,6 @@ public abstract class ChronoSyncService extends Service {
                                 APP_NAME = "chronochat-android";
     private static final long SESSION_NUM = 0; // FIXME?
     private static final double SYNC_LIFETIME = 5000.0; // FIXME?
-
-    /* Intent constants */
-    public static final String
-            ACTION_SEND = "edu.ucla.cs.ChronoChat.ChronoSyncService.ACTION_SEND";
 
     protected final String username = Integer.toString(new Random().nextInt(Integer.MAX_VALUE)); // FIXME
     protected final String chatroom = "chatroom";
@@ -97,7 +94,10 @@ public abstract class ChronoSyncService extends Service {
     });
 
     private void startNetworkThread() {
-        networkThread.start();
+        if (!networkThread.isAlive()) {
+            networkThreadShouldStop = false;
+            networkThread.start();
+        }
     }
     private void stopNetworkThread() {
         networkThreadShouldStop = true;
@@ -221,13 +221,19 @@ public abstract class ChronoSyncService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         // TODO handle intent
-        Log.d(TAG, "received intent");
+        Log.d(TAG, "received intent " + intent.getAction());
         startNetworkThread();
         return START_STICKY;
     }
 
     @Override
     public IBinder onBind(Intent _) { return null; }
+
+
+    protected void send(String message) {
+        sentData.add(message);
+        Log.d(TAG, "sending \"" + message + "\"");
+    }
 
 
     /***** Callbacks for NDN network thread *****/
@@ -312,7 +318,8 @@ public abstract class ChronoSyncService extends Service {
         @Override
         public void onData(Interest interest, Data data) {
             Blob blob = data.getContent();
-            Log.d(TAG, "received sync data for " + interest.getName() + ":\n" + blob.toString());
+            String receivedStr = blob.toString();
+            Log.d(TAG, "received sync data for " + interest.getName() + ":\n" + receivedStr);
             // TODO: Broadcast received data
         }
     };
