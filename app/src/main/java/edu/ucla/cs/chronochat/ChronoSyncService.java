@@ -44,6 +44,11 @@ public abstract class ChronoSyncService extends Service {
     private static final long SESSION_NUM = 0; // FIXME?
     private static final double SYNC_LIFETIME = 5000.0; // FIXME?
 
+    /* Intent constants */
+    public static final String
+            ACTION_SEND = "edu.ucla.cs.ChronoChat.ChronoChatService.ACTION_SEND",
+            EXTRA_MESSAGE = "edu.ucla.cs.ChronoChat.ChronoChatService.EXTRA_MESSAGE";
+
     protected final String username = Integer.toString(new Random().nextInt(Integer.MAX_VALUE)); // FIXME
     protected final String chatroom = "chatroom";
     protected final String appBasePrefix = ""; // FIXME
@@ -220,10 +225,18 @@ public abstract class ChronoSyncService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        // TODO handle intent
         Log.d(TAG, "received intent " + intent.getAction());
+        if (intent.getAction() == ACTION_SEND) {
+            String message = intent.getStringExtra(EXTRA_MESSAGE);
+            send(message);
+        }
         startNetworkThread();
         return START_STICKY;
+    }
+
+    @Override
+    public void onCreate() {
+        send(null); // create placeholder for seqnum 0
     }
 
     @Override
