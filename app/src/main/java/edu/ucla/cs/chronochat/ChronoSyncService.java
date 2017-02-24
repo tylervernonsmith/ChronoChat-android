@@ -46,8 +46,10 @@ public abstract class ChronoSyncService extends Service {
 
     /* Intent constants */
     public static final String
-            ACTION_SEND = "edu.ucla.cs.ChronoChat.ChronoChatService.ACTION_SEND",
-            EXTRA_MESSAGE = "edu.ucla.cs.ChronoChat.ChronoChatService.EXTRA_MESSAGE";
+            INTENT_PREFIX = "edu.ucla.cs.ChronoChat" + TAG,
+            ACTION_SEND = INTENT_PREFIX + "ACTION_SEND",
+            BCAST_RECEIVED = INTENT_PREFIX + "BCAST_RECEIVED",
+            EXTRA_MESSAGE = INTENT_PREFIX + "EXTRA_MESSAGE";
 
     protected final String username = Integer.toString(new Random().nextInt(Integer.MAX_VALUE)); // FIXME
     protected final String chatroom = "chatroom";
@@ -334,6 +336,8 @@ public abstract class ChronoSyncService extends Service {
             String receivedStr = blob.toString();
             Log.d(TAG, "received sync data for " + interest.getName() + ":\n" + receivedStr);
             // TODO: Broadcast received data
+            Intent bcast = new Intent(BCAST_RECEIVED).putExtra(EXTRA_MESSAGE, receivedStr);
+            LocalBroadcastManager.getInstance(ChronoSyncService.this).sendBroadcast(bcast);
         }
     };
 
