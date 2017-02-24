@@ -11,6 +11,7 @@ import android.support.v7.widget.Toolbar;
 import android.text.Editable;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.TextView;
 
@@ -19,7 +20,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = MainActivity.class.getSimpleName();
 
     private EditText editMessage;
-    private TextView messages;
+    private ViewGroup messages;
 
     private class LocalBroadcastReceiver extends BroadcastReceiver {
 
@@ -29,7 +30,7 @@ public class MainActivity extends AppCompatActivity {
             if (intent.getAction() == ChronoSyncService.BCAST_RECEIVED) {
                 String message = intent.getStringExtra(ChronoChatService.EXTRA_MESSAGE);
                 Log.d(TAG, "received message \"" + message + "\"");
-                messages.append(message + "\n");
+                addMessageToView(message);
             }
         }
     }
@@ -43,7 +44,7 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG, "onCreate");
 
         editMessage = (EditText) findViewById(R.id.edit_message);
-        messages = (TextView) findViewById(R.id.messages);
+        messages = (ViewGroup) findViewById(R.id.messages);
 
 //        Toolbar myToolbar = (Toolbar) findViewById(R.id.my_toolbar);
 //        setSupportActionBar(myToolbar);
@@ -67,12 +68,18 @@ public class MainActivity extends AppCompatActivity {
         Editable messageText = editMessage.getText();
         String message = messageText.toString();
         messageText.clear();
-        messages.append(message + "\n");
+        addMessageToView(message);
 
         Intent intent = new Intent(this, ChronoChatService.class);
         intent.setAction(ChronoChatService.ACTION_SEND);
         intent.putExtra(ChronoChatService.EXTRA_MESSAGE, message);
         startService(intent);
+    }
+
+    private void addMessageToView(String message) {
+        TextView textView = new TextView(this);
+        textView.setText(message);
+        messages.addView(textView);
     }
 
 }
