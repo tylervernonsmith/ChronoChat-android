@@ -46,23 +46,27 @@ public abstract class ChronoSyncService extends Service {
             INTENT_PREFIX = "edu.ucla.cs.ChronoChat." + TAG + ".",
             ACTION_SEND = INTENT_PREFIX + "ACTION_SEND",
             BCAST_RECEIVED = INTENT_PREFIX + "BCAST_RECEIVED",
-            EXTRA_MESSAGE = INTENT_PREFIX + "EXTRA_MESSAGE";
+            EXTRA_MESSAGE = INTENT_PREFIX + "EXTRA_MESSAGE",
+            EXTRA_USER_PREFIX_COMPONENT = INTENT_PREFIX + "EXTRA_USER_PREFIX_COMPONENT",
+            EXTRA_GROUP_PREFIX_COMPONENT = INTENT_PREFIX + "EXTRA_GROUP_PREFIX_COMPONENT";
 
     protected final String username = Integer.toString(new Random().nextInt(Integer.MAX_VALUE)); // FIXME
     protected final String chatroom = "chatroom";
-    protected final String appBasePrefix = ""; // FIXME
-    protected final String commonNameComponent = APP_NAME + "/" + chatroom;
-    private Face face = new Face(FACE_URI);
-    private Name dataPrefix = new Name(appBasePrefix + "/" +
-            commonNameComponent + "/" + username), // FIXME
-                 broadcastPrefix = new Name(BROADCAST_BASE_PREFIX + "/" +
-                         commonNameComponent); // FIXME
+    //protected final String appBasePrefix = ""; // FIXME
+    protected String userPrefixComponent, groupPrefixComponent;
+    //protected final String commonNameComponent = APP_NAME + "/" + chatroom;
+    private Face face;
+    private Name dataPrefix, broadcastPrefix;
+//    private Name dataPrefix = new Name(appBasePrefix + "/" +
+//            commonNameComponent + "/" + username), // FIXME
+//                 broadcastPrefix = new Name(BROADCAST_BASE_PREFIX + "/" +
+//                         commonNameComponent); // FIXME
     protected ChronoSync2013 sync;
     private boolean networkThreadShouldStop;
     protected boolean syncInitialized = false;
     private KeyChain keyChain;
-    protected HashMap<String, Long> highestRequestedSeqNums = new HashMap<>();
-    protected ArrayList<String> sentData = new ArrayList<>();
+    protected HashMap<String, Long> highestRequestedSeqNums;
+    protected ArrayList<String> sentData;
     protected long registeredDataPrefixId;
 
     private final Thread networkThread = new Thread(new Runnable() {
@@ -97,6 +101,16 @@ public abstract class ChronoSyncService extends Service {
             Log.d(TAG, "network thread stopped");
         }
     });
+
+    private void initializeService() {
+        face = new Face(FACE_URI);
+        dataPrefix = new Name(userPrefixComponent + groupPrefixComponent);
+        broadcastPrefix = new Name(BROADCAST_BASE_PREFIX + groupPrefixComponent);
+        highestRequestedSeqNums = new HashMap<>();
+        sentData = new ArrayList<>();
+        send(null); // create placeholder for seqnum 0
+        startNetworkThread();
+    }
 
     private void startNetworkThread() {
         if (!networkThread.isAlive()) {
@@ -226,31 +240,43 @@ public abstract class ChronoSyncService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.d(TAG, "received intent " + intent.getAction());
+        if (userPrefixComponent == null || groupPrefixComponent == null) { // FIXME
+            this.groupPrefixComponent = "/" + APP_NAME + "/" + chatroom;
+            this.userPrefixComponent = "/" + username;
+            initializeService();
+        }
         if (intent.getAction() == ACTION_SEND) {
             String message = intent.getStringExtra(EXTRA_MESSAGE);
             send(message);
         }
-        startNetworkThread();
         return START_STICKY;
-    }
-
-    @Override
-    public void onCreate() {
-        send(null); // create placeholder for seqnum 0
     }
 
     @Override
     public void onDestroy() {
         // attempt to clean up after ourselves
-        if (sync != null) sync.shutdown();
-        face.removeRegisteredPrefix(registeredDataPrefixId);
-        face.shutdown();
-        stopNetworkThread();
+        Log.d(TAG, "onDestroy() cleaning up...");
+        shutdown();
+        Log.d(TAG, "exiting onDestroy");
     }
 
     @Override
     public IBinder onBind(Intent _) { return null; }
 
+    private void shutdown() {
+        if (sync != null) sync.shutdown();
+        face.removeRegisteredPrefix(registeredDataPrefixId);
+        face.shutdown();
+        stopNetworkThread();
+        while (networkThread.isAlive()) {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Log.d(TAG, "interruption while waiting for network thread to stop");
+                e.printStackTrace();
+            }
+        }
+    }
 
     protected void send(String message) {
         sentData.add(message);

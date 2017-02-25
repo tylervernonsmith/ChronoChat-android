@@ -24,6 +24,8 @@ public class MainActivity extends AppCompatActivity {
     private EditText editMessage;
     private ViewGroup messages;
 
+    private String username, chatroom;
+
     private class LocalBroadcastReceiver extends BroadcastReceiver {
 
         @Override
@@ -56,8 +58,15 @@ public class MainActivity extends AppCompatActivity {
                 broadcastReceiver,
                 statusIntentFilter);
 
+        startActivityForResult(new Intent(this, LoginActivity.class), 0);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (resultCode != RESULT_OK) {
+            startActivityForResult(new Intent(this, LoginActivity.class), 0);
+        }
         Intent intent = new Intent(this, ChronoChatService.class);
-        stopService(intent);
         startService(intent);
     }
 
