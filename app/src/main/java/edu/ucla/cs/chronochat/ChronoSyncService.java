@@ -46,7 +46,7 @@ public abstract class ChronoSyncService extends Service {
 
     /* Intent constants */
     public static final String
-            INTENT_PREFIX = "edu.ucla.cs.ChronoChat" + TAG,
+            INTENT_PREFIX = "edu.ucla.cs.ChronoChat." + TAG + ".",
             ACTION_SEND = INTENT_PREFIX + "ACTION_SEND",
             BCAST_RECEIVED = INTENT_PREFIX + "BCAST_RECEIVED",
             EXTRA_MESSAGE = INTENT_PREFIX + "EXTRA_MESSAGE";
