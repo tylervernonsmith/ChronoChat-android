@@ -57,6 +57,7 @@ public class MainActivity extends AppCompatActivity {
                 statusIntentFilter);
 
         Intent intent = new Intent(this, ChronoChatService.class);
+        stopService(intent);
         startService(intent);
     }
 

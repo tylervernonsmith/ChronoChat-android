@@ -5,9 +5,6 @@ import android.content.Intent;
 import android.os.IBinder;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
-import android.widget.Toast;
-
-import com.google.protobuf.UninitializedMessageException;
 
 import net.named_data.jndn.Data;
 import net.named_data.jndn.Face;
@@ -64,8 +61,9 @@ public abstract class ChronoSyncService extends Service {
     private boolean networkThreadShouldStop;
     protected boolean syncInitialized = false;
     private KeyChain keyChain;
-    protected HashMap<String, Long> highestRequestedSeqNums = new HashMap<String, Long>();
-    protected ArrayList<String> sentData = new ArrayList<String>();
+    protected HashMap<String, Long> highestRequestedSeqNums = new HashMap<>();
+    protected ArrayList<String> sentData = new ArrayList<>();
+    protected long registeredDataPrefixId;
 
     private final Thread networkThread = new Thread(new Runnable() {
         @Override
@@ -146,8 +144,8 @@ public abstract class ChronoSyncService extends Service {
     private void registerDataPrefix() {
         try {
             Log.d(TAG, "registering data prefix...");
-            face.registerPrefix(dataPrefix, OnDataInterest, OnDataPrefixRegisterFailed,
-                    OnDataPrefixRegisterSuccess);
+            registeredDataPrefixId = face.registerPrefix(dataPrefix, OnDataInterest,
+                    OnDataPrefixRegisterFailed, OnDataPrefixRegisterSuccess);
         } catch (IOException | SecurityException e) {
             Log.d(TAG, "exception when registering data prefix: " + e.getMessage());
             e.printStackTrace();
@@ -239,6 +237,15 @@ public abstract class ChronoSyncService extends Service {
     @Override
     public void onCreate() {
         send(null); // create placeholder for seqnum 0
+    }
+
+    @Override
+    public void onDestroy() {
+        // attempt to clean up after ourselves
+        if (sync != null) sync.shutdown();
+        face.removeRegisteredPrefix(registeredDataPrefixId);
+        face.shutdown();
+        stopNetworkThread();
     }
 
     @Override
