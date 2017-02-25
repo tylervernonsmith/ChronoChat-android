@@ -4,12 +4,14 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Typeface;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
 import android.text.Editable;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
@@ -30,7 +32,7 @@ public class MainActivity extends AppCompatActivity {
             if (intent.getAction() == ChronoSyncService.BCAST_RECEIVED) {
                 String message = intent.getStringExtra(ChronoChatService.EXTRA_MESSAGE);
                 Log.d(TAG, "received message \"" + message + "\"");
-                addMessageToView(message);
+                addReceivedMessageToView(message);
             }
         }
     }
@@ -67,8 +69,9 @@ public class MainActivity extends AppCompatActivity {
     public void sendMessage(View view) {
         Editable messageText = editMessage.getText();
         String message = messageText.toString();
+        if (message.equals("")) return;
         messageText.clear();
-        addMessageToView(message);
+        addSentMessageToView(message);
 
         Intent intent = new Intent(this, ChronoChatService.class);
         intent.setAction(ChronoChatService.ACTION_SEND);
@@ -76,9 +79,22 @@ public class MainActivity extends AppCompatActivity {
         startService(intent);
     }
 
-    private void addMessageToView(String message) {
+    private void addReceivedMessageToView(String message) {
+        addMessageToView(message, true);
+    }
+
+    private void addSentMessageToView(String message) {
+        addMessageToView(message, false);
+    }
+
+    private void addMessageToView(String message, boolean received) {
         TextView textView = new TextView(this);
         textView.setText(message);
+        if (received) {
+            textView.setTypeface(null, Typeface.BOLD);
+        } else {
+            textView.setGravity(Gravity.RIGHT);
+        }
         messages.addView(textView);
     }
 
