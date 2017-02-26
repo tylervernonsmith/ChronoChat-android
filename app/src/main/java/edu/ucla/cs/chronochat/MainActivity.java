@@ -17,14 +17,18 @@ import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import net.named_data.jndn.Name;
+
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = MainActivity.class.getSimpleName();
+    // index of username component in data names
+    private static int USERNAME_COMPONENT_INDEX = 1;
 
     private EditText editMessage;
     private ViewGroup messages;
 
-    private String username, chatroom, prefix;
+    private String username, chatroom, prefix, lastMessageSentBy;
 
     private class LocalBroadcastReceiver extends BroadcastReceiver {
 
@@ -33,8 +37,11 @@ public class MainActivity extends AppCompatActivity {
             Log.d(TAG, "broadcast received");
             if (intent.getAction() == ChronoSyncService.BCAST_RECEIVED) {
                 String message = intent.getStringExtra(ChronoChatService.EXTRA_MESSAGE);
+                String dataNameStr = intent.getStringExtra(ChronoChatService.EXTRA_DATA_NAME);
+                Name dataName = new Name(dataNameStr);
+                String receivedFrom = dataName.get(USERNAME_COMPONENT_INDEX).toEscapedString();
                 Log.d(TAG, "received message \"" + message + "\"");
-                addReceivedMessageToView(message);
+                addReceivedMessageToView(message, receivedFrom);
             }
         }
     }
@@ -101,22 +108,26 @@ public class MainActivity extends AppCompatActivity {
         return intent;
     }
 
-    private void addReceivedMessageToView(String message) {
-        addMessageToView(message, true);
+    private void addReceivedMessageToView(String message, String receivedFrom) {
+        addMessageToView(message, receivedFrom);
     }
 
     private void addSentMessageToView(String message) {
-        addMessageToView(message, false);
+        addMessageToView(message, username);
     }
 
-    private void addMessageToView(String message, boolean received) {
+    private void addMessageToView(String message, String sentBy) {
         TextView textView = new TextView(this);
         textView.setText(message);
-        if (received) {
-            textView.setTypeface(null, Typeface.BOLD);
-        } else {
+        if (sentBy.equals(username)) {
             textView.setGravity(Gravity.RIGHT);
+        } else if (!sentBy.equals(lastMessageSentBy)) {
+            TextView labelTextView = new TextView(this);
+            labelTextView.setText(sentBy);
+            labelTextView.setTypeface(null, Typeface.BOLD);
+            messages.addView(labelTextView);
         }
+        lastMessageSentBy = sentBy;
         messages.addView(textView);
     }
 

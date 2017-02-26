@@ -45,7 +45,8 @@ public abstract class ChronoSyncService extends Service {
             INTENT_PREFIX = "edu.ucla.cs.ChronoChat." + TAG + ".",
             ACTION_SEND = INTENT_PREFIX + "ACTION_SEND",
             BCAST_RECEIVED = INTENT_PREFIX + "BCAST_RECEIVED",
-            EXTRA_MESSAGE = INTENT_PREFIX + "EXTRA_MESSAGE";
+            EXTRA_MESSAGE = INTENT_PREFIX + "EXTRA_MESSAGE",
+            EXTRA_DATA_NAME = INTENT_PREFIX + "EXTRA_DATA_NAME";
     protected static final String
             EXTRA_USER_PREFIX_COMPONENT = INTENT_PREFIX + "EXTRA_USER_PREFIX_COMPONENT",
             EXTRA_GROUP_PREFIX_COMPONENT = INTENT_PREFIX + "EXTRA_GROUP_PREFIX_COMPONENT";
@@ -376,10 +377,11 @@ public abstract class ChronoSyncService extends Service {
         @Override
         public void onData(Interest interest, Data data) {
             Blob blob = data.getContent();
-            String receivedStr = blob.toString();
-            Log.d(TAG, "received sync data for " + interest.getName() + ":\n" + receivedStr);
-            // TODO: Broadcast received data
-            Intent bcast = new Intent(BCAST_RECEIVED).putExtra(EXTRA_MESSAGE, receivedStr);
+            String receivedStr = blob.toString(), dataName = interest.getName().toString();
+            Log.d(TAG, "received sync data for " + dataName + ":\n" + receivedStr);
+            Intent bcast = new Intent(BCAST_RECEIVED);
+            bcast.putExtra(EXTRA_MESSAGE, receivedStr)
+                 .putExtra(EXTRA_DATA_NAME, dataName);
             LocalBroadcastManager.getInstance(ChronoSyncService.this).sendBroadcast(bcast);
         }
     };
