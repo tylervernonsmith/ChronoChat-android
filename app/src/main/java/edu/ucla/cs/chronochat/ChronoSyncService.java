@@ -36,8 +36,7 @@ public abstract class ChronoSyncService extends Service {
 
     private static final String FACE_URI = "localhost",
                                 TAG = ChronoSyncService.class.getSimpleName(),
-                                BROADCAST_BASE_PREFIX = "/ndn/broadcast",
-                                APP_NAME = "chronochat-android";
+                                BROADCAST_BASE_PREFIX = "/ndn/broadcast";
     private static final long SESSION_NUM = 0; // FIXME?
     private static final double SYNC_LIFETIME = 5000.0; // FIXME?
 
@@ -46,21 +45,15 @@ public abstract class ChronoSyncService extends Service {
             INTENT_PREFIX = "edu.ucla.cs.ChronoChat." + TAG + ".",
             ACTION_SEND = INTENT_PREFIX + "ACTION_SEND",
             BCAST_RECEIVED = INTENT_PREFIX + "BCAST_RECEIVED",
-            EXTRA_MESSAGE = INTENT_PREFIX + "EXTRA_MESSAGE",
+            EXTRA_MESSAGE = INTENT_PREFIX + "EXTRA_MESSAGE";
+    protected static final String
             EXTRA_USER_PREFIX_COMPONENT = INTENT_PREFIX + "EXTRA_USER_PREFIX_COMPONENT",
             EXTRA_GROUP_PREFIX_COMPONENT = INTENT_PREFIX + "EXTRA_GROUP_PREFIX_COMPONENT";
 
-    protected final String username = Integer.toString(new Random().nextInt(Integer.MAX_VALUE)); // FIXME
-    protected final String chatroom = "chatroom";
-    //protected final String appBasePrefix = ""; // FIXME
     protected String userPrefixComponent, groupPrefixComponent;
-    //protected final String commonNameComponent = APP_NAME + "/" + chatroom;
     private Face face;
     private Name dataPrefix, broadcastPrefix;
-//    private Name dataPrefix = new Name(appBasePrefix + "/" +
-//            commonNameComponent + "/" + username), // FIXME
-//                 broadcastPrefix = new Name(BROADCAST_BASE_PREFIX + "/" +
-//                         commonNameComponent); // FIXME
+
     protected ChronoSync2013 sync;
     private boolean networkThreadShouldStop;
     protected boolean syncInitialized = false;
@@ -103,6 +96,7 @@ public abstract class ChronoSyncService extends Service {
     });
 
     private void initializeService() {
+        Log.d(TAG, "initializing service...");
         face = new Face(FACE_URI);
         dataPrefix = new Name(userPrefixComponent + groupPrefixComponent);
         broadcastPrefix = new Name(BROADCAST_BASE_PREFIX + groupPrefixComponent);
@@ -110,6 +104,7 @@ public abstract class ChronoSyncService extends Service {
         sentData = new ArrayList<>();
         send(null); // create placeholder for seqnum 0
         startNetworkThread();
+        Log.d(TAG, "service initialized");
     }
 
     private void startNetworkThread() {
@@ -240,9 +235,19 @@ public abstract class ChronoSyncService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.d(TAG, "received intent " + intent.getAction());
-        if (userPrefixComponent == null || groupPrefixComponent == null) { // FIXME
-            this.groupPrefixComponent = "/" + APP_NAME + "/" + chatroom;
-            this.userPrefixComponent = "/" + username;
+
+        String userPrefixComponentFromIntent = intent.getStringExtra(EXTRA_USER_PREFIX_COMPONENT),
+               groupPrefixComponentFromIntent = intent.getStringExtra(EXTRA_GROUP_PREFIX_COMPONENT);
+
+        if (userPrefixComponent == null
+              || groupPrefixComponent == null
+              || !userPrefixComponent.equals(userPrefixComponentFromIntent)
+              || !groupPrefixComponent.equals(groupPrefixComponentFromIntent)) {
+
+            Log.d(TAG, "new user/group prefix detected...");
+            userPrefixComponent = userPrefixComponentFromIntent;
+            groupPrefixComponent = groupPrefixComponentFromIntent;
+            shutdown();
             initializeService();
         }
         if (intent.getAction() == ACTION_SEND) {
@@ -264,9 +269,12 @@ public abstract class ChronoSyncService extends Service {
     public IBinder onBind(Intent _) { return null; }
 
     private void shutdown() {
+        syncInitialized = false;
         if (sync != null) sync.shutdown();
-        face.removeRegisteredPrefix(registeredDataPrefixId);
-        face.shutdown();
+        if (face != null) {
+            face.removeRegisteredPrefix(registeredDataPrefixId);
+            face.shutdown();
+        }
         stopNetworkThread();
         while (networkThread.isAlive()) {
             try {
@@ -276,6 +284,8 @@ public abstract class ChronoSyncService extends Service {
                 e.printStackTrace();
             }
         }
+        face = null;
+        sync = null;
     }
 
     protected void send(String message) {

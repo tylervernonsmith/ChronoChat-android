@@ -24,7 +24,7 @@ public class MainActivity extends AppCompatActivity {
     private EditText editMessage;
     private ViewGroup messages;
 
-    private String username, chatroom;
+    private String username, chatroom, prefix;
 
     private class LocalBroadcastReceiver extends BroadcastReceiver {
 
@@ -66,7 +66,11 @@ public class MainActivity extends AppCompatActivity {
         if (resultCode != RESULT_OK) {
             startActivityForResult(new Intent(this, LoginActivity.class), 0);
         }
-        Intent intent = new Intent(this, ChronoChatService.class);
+        username = data.getStringExtra(ChronoChatService.EXTRA_USERNAME);
+        chatroom = data.getStringExtra(ChronoChatService.EXTRA_CHATROOM);
+        prefix = data.getStringExtra(ChronoChatService.EXTRA_PREFIX);
+
+        Intent intent = getChronoChatServiceIntent(null);
         startService(intent);
     }
 
@@ -83,10 +87,18 @@ public class MainActivity extends AppCompatActivity {
         messageText.clear();
         addSentMessageToView(message);
 
-        Intent intent = new Intent(this, ChronoChatService.class);
-        intent.setAction(ChronoChatService.ACTION_SEND);
+        Intent intent = getChronoChatServiceIntent(ChronoChatService.ACTION_SEND);
         intent.putExtra(ChronoChatService.EXTRA_MESSAGE, message);
         startService(intent);
+    }
+
+    private Intent getChronoChatServiceIntent(String action) {
+        Intent intent = new Intent(this, ChronoChatService.class);
+        intent.setAction(action);
+        intent.putExtra(ChronoChatService.EXTRA_USERNAME, username)
+                .putExtra(ChronoChatService.EXTRA_CHATROOM, chatroom)
+                .putExtra(ChronoChatService.EXTRA_PREFIX, prefix);
+        return intent;
     }
 
     private void addReceivedMessageToView(String message) {
