@@ -1,13 +1,17 @@
 package edu.ucla.cs.chronochat;
 
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Typeface;
+import android.support.v4.app.TaskStackBuilder;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.app.NotificationCompat;
 import android.support.v7.widget.Toolbar;
 import android.text.Editable;
 import android.util.Log;
@@ -24,7 +28,8 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = MainActivity.class.getSimpleName();
     // index of username component in data names
-    private static int USERNAME_COMPONENT_INDEX = 1;
+    private static int USERNAME_COMPONENT_INDEX = 1,
+                       NOTIFICATION_ID = 0;
 
     private EditText editMessage;
     private ViewGroup messages;
@@ -124,11 +129,14 @@ public class MainActivity extends AppCompatActivity {
         textView.setText(message);
         if (sentBy.equals(username)) {
             textView.setGravity(Gravity.RIGHT);
-        } else if (!sentBy.equals(lastMessageSentBy)) {
-            TextView labelTextView = new TextView(this);
-            labelTextView.setText(sentBy);
-            labelTextView.setTypeface(null, Typeface.BOLD);
-            messages.addView(labelTextView);
+        } else {
+            if (!sentBy.equals(lastMessageSentBy)) {
+                TextView labelTextView = new TextView(this);
+                labelTextView.setText(sentBy);
+                labelTextView.setTypeface(null, Typeface.BOLD);
+                messages.addView(labelTextView);
+            }
+            showNotification(message, sentBy);
         }
         lastMessageSentBy = sentBy;
         messages.addView(textView);
@@ -137,6 +145,33 @@ public class MainActivity extends AppCompatActivity {
 
     private void scrollToLastMessage() {
         containerForMessages.fullScroll(ScrollView.FOCUS_DOWN);
+    }
+
+    private void showNotification(String message, String sentBy) {
+
+        NotificationCompat.Builder builder =
+                (NotificationCompat.Builder) new NotificationCompat.Builder(this)
+                        .setSmallIcon(R.drawable.notification_icon)
+                        .setContentTitle(sentBy)
+                        .setContentText(message);
+
+        Intent intent = new Intent(this, MainActivity.class);
+
+        // Creates an artificial back stack for the MainActivity so that navigating
+        //  backward from MainActivity (after clicking on the notification) will return
+        //  the user to launcher home screen.
+        TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
+        stackBuilder.addParentStack(MainActivity.class);
+        stackBuilder.addNextIntent(intent);
+        PendingIntent resultPendingIntent =
+                stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        builder.setContentIntent(resultPendingIntent);
+        builder.setAutoCancel(true);
+
+        NotificationManager notificationManager =
+                (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationManager.notify(NOTIFICATION_ID, builder.build());
     }
 
 }
