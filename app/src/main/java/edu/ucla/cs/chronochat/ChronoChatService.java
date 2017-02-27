@@ -15,15 +15,17 @@ public class ChronoChatService extends ChronoSyncService {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
 
+        if (intent != null) {
+            final String username = intent.getStringExtra(EXTRA_USERNAME),
+                    chatroom = intent.getStringExtra(EXTRA_CHATROOM),
+                    prefix = intent.getStringExtra(EXTRA_PREFIX),
+                    userPrefixComponent = prefix + "/" + username,
+                    groupPrefixComponent = "/" + APP_NAME + "/" + chatroom;
 
-        final String username = intent.getStringExtra(EXTRA_USERNAME),
-                chatroom = intent.getStringExtra(EXTRA_CHATROOM),
-                prefix = intent.getStringExtra(EXTRA_PREFIX),
-                userPrefixComponent = prefix + "/" + username,
-                groupPrefixComponent = "/" + APP_NAME + "/" + chatroom;
+            intent.putExtra(EXTRA_USER_PREFIX_COMPONENT, userPrefixComponent);
+            intent.putExtra(EXTRA_GROUP_PREFIX_COMPONENT, groupPrefixComponent);
+        }
 
-        intent.putExtra(EXTRA_USER_PREFIX_COMPONENT, userPrefixComponent);
-        intent.putExtra(EXTRA_GROUP_PREFIX_COMPONENT, groupPrefixComponent);
         return super.onStartCommand(intent, flags, startId);
     }
 

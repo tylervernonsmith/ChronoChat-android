@@ -235,26 +235,30 @@ public abstract class ChronoSyncService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.d(TAG, "received intent " + intent.getAction());
 
-        String userPrefixComponentFromIntent = intent.getStringExtra(EXTRA_USER_PREFIX_COMPONENT),
-               groupPrefixComponentFromIntent = intent.getStringExtra(EXTRA_GROUP_PREFIX_COMPONENT);
+        if (intent != null) {
+            Log.d(TAG, "received intent " + intent.getAction());
 
-        if (userPrefixComponent == null
-              || groupPrefixComponent == null
-              || !userPrefixComponent.equals(userPrefixComponentFromIntent)
-              || !groupPrefixComponent.equals(groupPrefixComponentFromIntent)) {
+            String userPrefixComponentFromIntent = intent.getStringExtra(EXTRA_USER_PREFIX_COMPONENT),
+                    groupPrefixComponentFromIntent = intent.getStringExtra(EXTRA_GROUP_PREFIX_COMPONENT);
 
-            Log.d(TAG, "new user/group prefix detected...");
-            userPrefixComponent = userPrefixComponentFromIntent;
-            groupPrefixComponent = groupPrefixComponentFromIntent;
-            shutdown();
-            initializeService();
+            if (userPrefixComponent == null
+                    || groupPrefixComponent == null
+                    || !userPrefixComponent.equals(userPrefixComponentFromIntent)
+                    || !groupPrefixComponent.equals(groupPrefixComponentFromIntent)) {
+
+                Log.d(TAG, "new user/group prefix detected...");
+                userPrefixComponent = userPrefixComponentFromIntent;
+                groupPrefixComponent = groupPrefixComponentFromIntent;
+                shutdown();
+                initializeService();
+            }
+            if (intent.getAction() == ACTION_SEND) {
+                String message = intent.getStringExtra(EXTRA_MESSAGE);
+                send(message);
+            }
         }
-        if (intent.getAction() == ACTION_SEND) {
-            String message = intent.getStringExtra(EXTRA_MESSAGE);
-            send(message);
-        }
+
         return START_STICKY;
     }
 
