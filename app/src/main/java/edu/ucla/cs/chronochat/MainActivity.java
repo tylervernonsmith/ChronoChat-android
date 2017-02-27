@@ -15,6 +15,7 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 import net.named_data.jndn.Name;
@@ -27,6 +28,7 @@ public class MainActivity extends AppCompatActivity {
 
     private EditText editMessage;
     private ViewGroup messages;
+    private ScrollView containerForMessages;
 
     private String username, chatroom, prefix, lastMessageSentBy;
 
@@ -56,6 +58,7 @@ public class MainActivity extends AppCompatActivity {
 
         editMessage = (EditText) findViewById(R.id.edit_message);
         messages = (ViewGroup) findViewById(R.id.messages);
+        containerForMessages = (ScrollView) messages.getParent();
 
 //        Toolbar myToolbar = (Toolbar) findViewById(R.id.my_toolbar);
 //        setSupportActionBar(myToolbar);
@@ -129,6 +132,11 @@ public class MainActivity extends AppCompatActivity {
         }
         lastMessageSentBy = sentBy;
         messages.addView(textView);
+        scrollToLastMessage();
+    }
+
+    private void scrollToLastMessage() {
+        containerForMessages.fullScroll(ScrollView.FOCUS_DOWN);
     }
 
 }
