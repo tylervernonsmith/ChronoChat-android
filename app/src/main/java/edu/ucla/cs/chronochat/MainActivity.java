@@ -1,5 +1,6 @@
 package edu.ucla.cs.chronochat;
 
+import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
@@ -26,7 +27,11 @@ import net.named_data.jndn.Name;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final String TAG = MainActivity.class.getSimpleName();
+    private static final String TAG = MainActivity.class.getSimpleName(),
+                                SAVED_USERNAME = TAG + ".username",
+                                SAVED_CHATROOM = TAG + ".chatroom",
+                                SAVED_PREFIX = TAG + ".prefix";
+
     // index of username component in data names
     private static int USERNAME_COMPONENT_INDEX = 1,
                        NOTIFICATION_ID = 0;
@@ -73,7 +78,17 @@ public class MainActivity extends AppCompatActivity {
                 broadcastReceiver,
                 statusIntentFilter);
 
-        startActivityForResult(new Intent(this, LoginActivity.class), 0);
+        getLoginInfo(savedInstanceState);
+    }
+
+    private void getLoginInfo(Bundle savedInstanceState) {
+        if (savedInstanceState == null) {
+            startActivityForResult(new Intent(this, LoginActivity.class), 0);
+        } else {
+            username = savedInstanceState.getString(SAVED_USERNAME);
+            chatroom = savedInstanceState.getString(SAVED_CHATROOM);
+            prefix = savedInstanceState.getString(SAVED_PREFIX);
+        }
     }
 
     @Override
@@ -93,6 +108,14 @@ public class MainActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
 
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle savedState) {
+        savedState.putString(SAVED_USERNAME, username);
+        savedState.putString(SAVED_CHATROOM, chatroom);
+        savedState.putString(SAVED_PREFIX, prefix);
+        super.onSaveInstanceState(savedState);
     }
 
     public void sendMessage(View view) {
@@ -153,18 +176,13 @@ public class MainActivity extends AppCompatActivity {
                 (NotificationCompat.Builder) new NotificationCompat.Builder(this)
                         .setSmallIcon(R.drawable.notification_icon)
                         .setContentTitle(sentBy)
-                        .setContentText(message);
+                        .setContentText(message)
+                        .setDefaults(Notification.DEFAULT_SOUND|Notification.DEFAULT_LIGHTS);
 
+        // FIXME is this done right?
         Intent intent = new Intent(this, MainActivity.class);
-
-        // Creates an artificial back stack for the MainActivity so that navigating
-        //  backward from MainActivity (after clicking on the notification) will return
-        //  the user to launcher home screen.
-        TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
-        stackBuilder.addParentStack(MainActivity.class);
-        stackBuilder.addNextIntent(intent);
-        PendingIntent resultPendingIntent =
-                stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent resultPendingIntent = PendingIntent.getActivity(getApplicationContext(),
+                (int)System.currentTimeMillis(), intent, 0);
 
         builder.setContentIntent(resultPendingIntent);
         builder.setAutoCancel(true);
