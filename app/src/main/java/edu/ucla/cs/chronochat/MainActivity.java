@@ -17,6 +17,9 @@ import android.support.v7.widget.Toolbar;
 import android.text.Editable;
 import android.util.Log;
 import android.view.Gravity;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
@@ -116,6 +119,26 @@ public class MainActivity extends AppCompatActivity {
         savedState.putString(SAVED_CHATROOM, chatroom);
         savedState.putString(SAVED_PREFIX, prefix);
         super.onSaveInstanceState(savedState);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.chat_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.action_leave:
+                // rudimentary "logout"
+                messages.removeAllViews();
+                getLoginInfo(null);
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
     }
 
     public void sendMessage(View view) {
