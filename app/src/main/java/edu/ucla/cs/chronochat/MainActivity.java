@@ -171,20 +171,28 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void addMessageToView(String message, String sentBy) {
+
         TextView textView = new TextView(this);
         textView.setText(message);
+        final int gravity;
+
         if (sentBy.equals(username)) {
-            textView.setGravity(Gravity.RIGHT);
+            gravity = Gravity.RIGHT;
         } else {
-            if (!sentBy.equals(lastMessageSentBy)) {
-                TextView labelTextView = new TextView(this);
-                labelTextView.setText(sentBy);
-                labelTextView.setTypeface(null, Typeface.BOLD);
-                messages.addView(labelTextView);
-            }
+            gravity = Gravity.LEFT;
             showNotification(message, sentBy);
         }
+        
+        if (!sentBy.equals(lastMessageSentBy)) {
+            TextView labelTextView = new TextView(this);
+            labelTextView.setText(sentBy);
+            labelTextView.setTypeface(null, Typeface.BOLD);
+            labelTextView.setGravity(gravity);
+            messages.addView(labelTextView);
+        }
         lastMessageSentBy = sentBy;
+
+        textView.setGravity(gravity);
         messages.addView(textView);
         scrollToLastMessage();
     }
