@@ -11,8 +11,10 @@ import net.named_data.jndn.Face;
 import net.named_data.jndn.Interest;
 import net.named_data.jndn.InterestFilter;
 import net.named_data.jndn.Name;
+import net.named_data.jndn.NetworkNack;
 import net.named_data.jndn.OnData;
 import net.named_data.jndn.OnInterestCallback;
+import net.named_data.jndn.OnNetworkNack;
 import net.named_data.jndn.OnRegisterFailed;
 import net.named_data.jndn.OnRegisterSuccess;
 import net.named_data.jndn.OnTimeout;
@@ -214,7 +216,7 @@ public abstract class ChronoSyncService extends Service {
         Log.d(TAG, "expressing interest for " + dataName.toString());
         try {
             face.expressInterest(dataName, OnReceivedSyncData,
-                    OnSyncDataInterestTimeout);
+                    OnSyncDataInterestTimeout, OnSyncDataInterestNack);
         } catch (IOException e) {
             Log.d(TAG, "failed to express data interest");
             e.printStackTrace();
@@ -401,6 +403,14 @@ public abstract class ChronoSyncService extends Service {
             Log.d(TAG, "timed out waiting for " + name);
             // FIXME? we just try again...
             expressDataInterest(name);
+        }
+    };
+
+    public final OnNetworkNack OnSyncDataInterestNack = new OnNetworkNack() {
+        @Override
+        public void onNetworkNack(Interest interest, NetworkNack networkNack) {
+            Name name = interest.getName();
+            Log.d(TAG, "received NACK for " + name);
         }
     };
 }
