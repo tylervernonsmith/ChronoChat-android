@@ -11,7 +11,7 @@ public class LoginActivity extends AppCompatActivity {
 
     private static final String TAG = LoginActivity.class.getSimpleName(),
                                 DEFAULT_CHATROOM = "chatroom",
-                                DEFAULT_PREFIX = "/test";
+                                DEFAULT_PREFIX = "/ndn/test";
 
     private EditText username, chatroom, prefix;
 

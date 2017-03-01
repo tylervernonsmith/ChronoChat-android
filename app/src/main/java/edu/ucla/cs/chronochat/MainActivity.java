@@ -36,7 +36,7 @@ public class MainActivity extends AppCompatActivity {
                                 SAVED_PREFIX = TAG + ".prefix";
 
     // index of username component in data names
-    private static int USERNAME_COMPONENT_INDEX = 1,
+    private static int USERNAME_COMPONENT_INDEX = -5,
                        NOTIFICATION_ID = 0;
 
     private EditText editMessage;

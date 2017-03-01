@@ -37,7 +37,6 @@ public abstract class ChronoSyncService extends Service {
     private static final String FACE_URI = "localhost",
                                 TAG = ChronoSyncService.class.getSimpleName(),
                                 BROADCAST_BASE_PREFIX = "/ndn/broadcast";
-    private static final long SESSION_NUM = 0; // FIXME?
     private static final double SYNC_LIFETIME = 5000.0; // FIXME?
 
     /* Intent constants */
@@ -62,6 +61,8 @@ public abstract class ChronoSyncService extends Service {
     protected HashMap<String, Long> highestRequestedSeqNums;
     protected ArrayList<String> sentData;
     protected long registeredDataPrefixId;
+    private final Random rng = new Random();
+    private long session;
 
     private final Thread networkThread = new Thread(new Runnable() {
         @Override
@@ -103,6 +104,7 @@ public abstract class ChronoSyncService extends Service {
         broadcastPrefix = new Name(BROADCAST_BASE_PREFIX + groupPrefixComponent);
         highestRequestedSeqNums = new HashMap<>();
         sentData = new ArrayList<>();
+        session = rng.nextLong();
         send(null); // create placeholder for seqnum 0
         startNetworkThread();
         Log.d(TAG, "service initialized");
@@ -166,7 +168,7 @@ public abstract class ChronoSyncService extends Service {
         Log.d(TAG, "initializing ChronoSync...");
         try {
             sync = new ChronoSync2013(OnReceivedChronoSyncState, OnChronoSyncInitialized,
-                    dataPrefix, broadcastPrefix, SESSION_NUM, face, keyChain,
+                    dataPrefix, broadcastPrefix, session, face, keyChain,
                     keyChain.getDefaultCertificateName(), SYNC_LIFETIME,
                     OnBroadcastPrefixRegisterFailed);
         } catch (IOException | SecurityException e) {
@@ -176,33 +178,35 @@ public abstract class ChronoSyncService extends Service {
     }
 
     private void processSyncState(ChronoSync2013.SyncState syncState) {
-        String syncDataPrefix = syncState.getDataPrefix();
-        long syncSeqNum = syncState.getSequenceNo();
+        long syncSession = syncState.getSessionNo(),
+             syncSeqNum = syncState.getSequenceNo();
+        String syncDataPrefix = syncState.getDataPrefix(),
+                syncDataId = syncDataPrefix + "/" + syncSession;
 
         if (syncDataPrefix.toString().equals(this.dataPrefix.toString())) {
             // Ignore sync state for our own user (FIXME is this really needed?)
             Log.d(TAG, "ignoring sync state for own user");
         } else {
-            if (!highestRequestedSeqNums.keySet().contains(syncDataPrefix)) {
+            if (!highestRequestedSeqNums.keySet().contains(syncDataId)) {
                 // If we don't know about this user yet, add them to our list
-                Log.d(TAG, "recording newly discovered sync prefix " + syncDataPrefix);
-                highestRequestedSeqNums.put(syncDataPrefix, 0l);
+                Log.d(TAG, "recording newly discovered sync prefix/session " + syncDataId);
+                highestRequestedSeqNums.put(syncDataId, 0l);
             }
-            requestMissingSeqNums(syncDataPrefix, syncSeqNum);
+            requestMissingSeqNums(syncDataId, syncSeqNum);
         }
     }
 
-    private void requestMissingSeqNums(String syncDataPrefix, long syncSeqNum) {
-        long highestRequestedSeqNum = highestRequestedSeqNums.get(syncDataPrefix);
+    private void requestMissingSeqNums(String syncDataId, long syncSeqNum) {
+        long highestRequestedSeqNum = highestRequestedSeqNums.get(syncDataId);
         while (syncSeqNum > highestRequestedSeqNum) {
             long missingSeqNum = highestRequestedSeqNum + 1;
-            String missingDataNameStr = syncDataPrefix + "/" + missingSeqNum;
+            String missingDataNameStr = syncDataId + "/" + missingSeqNum;
             Name missingDataName = new Name(missingDataNameStr);
             Log.d(TAG, "requesting missing seqnum " + missingSeqNum);
             expressDataInterest(missingDataName);
             highestRequestedSeqNum = missingSeqNum;
         }
-        highestRequestedSeqNums.put(syncDataPrefix, syncSeqNum);
+        highestRequestedSeqNums.put(syncDataId, syncSeqNum);
     }
 
 
