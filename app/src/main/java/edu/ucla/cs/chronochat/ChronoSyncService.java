@@ -314,11 +314,14 @@ public abstract class ChronoSyncService extends Service {
             Name interestName = interest.getName();
             Log.d(TAG, "data interest received: " + interestName.toString());
 
-            Name.Component lastInterestComponent = interestName.get(-1);
-            int requestedSeqNum = Integer.parseInt(lastInterestComponent.toEscapedString());
+            Name.Component seqNumComponent = interestName.get(-1);
+            Name.Component sessionComponent = interestName.get(-2);
+            int requestedSeqNum = Integer.parseInt(seqNumComponent.toEscapedString());
+            long requestedSession = Long.parseLong(sessionComponent.toEscapedString());
 
-            if (lastPublishedSeqNum() >= requestedSeqNum) {
+            if (lastPublishedSeqNum() >= requestedSeqNum && session == requestedSession) {
                 Log.d(TAG, "responding to data interest");
+                Log.d(TAG, "lastPublishedSeqNum() = " + lastPublishedSeqNum());
                 Data response = new Data(interestName);
                 Blob content = new Blob(sentData.get(requestedSeqNum).getBytes());
                 response.setContent(content);
