@@ -59,7 +59,7 @@ public abstract class ChronoSyncService extends Service {
     private boolean networkThreadShouldStop;
     protected boolean syncInitialized = false;
     private KeyChain keyChain;
-    protected HashMap<String, Long> highestRequestedSeqNums;
+    protected HashMap<String, Long> nextSeqNumToRequest;
     protected ArrayList<String> sentData;
     protected long registeredDataPrefixId;
     private long session;
@@ -102,10 +102,9 @@ public abstract class ChronoSyncService extends Service {
         face = new Face(FACE_URI);
         dataPrefix = new Name(userPrefixComponent + groupPrefixComponent);
         broadcastPrefix = new Name(BROADCAST_BASE_PREFIX + groupPrefixComponent);
-        highestRequestedSeqNums = new HashMap<>();
+        nextSeqNumToRequest = new HashMap<>();
         sentData = new ArrayList<>();
         session = System.currentTimeMillis();
-        send(null); // create placeholder for seqnum 0
         startNetworkThread();
         Log.d(TAG, "service initialized");
     }
@@ -187,26 +186,25 @@ public abstract class ChronoSyncService extends Service {
             // Ignore sync state for our own user (FIXME is this really needed?)
             Log.d(TAG, "ignoring sync state for own user");
         } else {
-            if (!highestRequestedSeqNums.keySet().contains(syncDataId)) {
+            if (!nextSeqNumToRequest.keySet().contains(syncDataId)) {
                 // If we don't know about this user yet, add them to our list
                 Log.d(TAG, "recording newly discovered sync prefix/session " + syncDataId);
-                highestRequestedSeqNums.put(syncDataId, 0l);
+                nextSeqNumToRequest.put(syncDataId, 0l);
             }
             requestMissingSeqNums(syncDataId, syncSeqNum);
         }
     }
 
-    private void requestMissingSeqNums(String syncDataId, long syncSeqNum) {
-        long highestRequestedSeqNum = highestRequestedSeqNums.get(syncDataId);
-        while (syncSeqNum > highestRequestedSeqNum) {
-            long missingSeqNum = highestRequestedSeqNum + 1;
-            String missingDataNameStr = syncDataId + "/" + missingSeqNum;
+    private void requestMissingSeqNums(String syncDataId, long availableSeqNum) {
+        long seqNumToRequest = nextSeqNumToRequest.get(syncDataId);
+        while (availableSeqNum > seqNumToRequest) {
+            String missingDataNameStr = syncDataId + "/" + seqNumToRequest;
             Name missingDataName = new Name(missingDataNameStr);
-            Log.d(TAG, "requesting missing seqnum " + missingSeqNum);
+            Log.d(TAG, "requesting missing seqnum " + seqNumToRequest);
             expressDataInterest(missingDataName);
-            highestRequestedSeqNum = missingSeqNum;
+            seqNumToRequest++;
         }
-        highestRequestedSeqNums.put(syncDataId, syncSeqNum);
+        nextSeqNumToRequest.put(syncDataId, seqNumToRequest);
     }
 
 
@@ -223,19 +221,20 @@ public abstract class ChronoSyncService extends Service {
 
     protected void publishSeqNumsIfNeeded() {
         if (!syncInitialized) return;
-        while(lastPublishedSeqNum() < lastDataSeqNum()) {
+        while(nextSyncSeqNum() < nextDataSeqNum()) {
+            long seqNumToPublish = nextSyncSeqNum();
             try {
                 sync.publishNextSequenceNo();
-                Log.d(TAG, "published seqnum " + lastPublishedSeqNum());
+                Log.d(TAG, "published seqnum " + seqNumToPublish);
             } catch (IOException | SecurityException e) {
-                Log.d(TAG, "failed to publish seqnum " + (lastPublishedSeqNum() + 1));
+                Log.d(TAG, "failed to publish seqnum " + seqNumToPublish);
                 e.printStackTrace();
             }
         }
     }
 
-    public int lastDataSeqNum() { return sentData.size() - 1; }
-    public long lastPublishedSeqNum() { return sync.getSequenceNo(); }
+    public int nextDataSeqNum() { return sentData.size(); }
+    public long nextSyncSeqNum() { return sync.getSequenceNo(); }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -317,9 +316,8 @@ public abstract class ChronoSyncService extends Service {
             int requestedSeqNum = Integer.parseInt(seqNumComponent.toEscapedString());
             long requestedSession = Long.parseLong(sessionComponent.toEscapedString());
 
-            if (lastPublishedSeqNum() >= requestedSeqNum && session == requestedSession) {
+            if (nextDataSeqNum() > requestedSeqNum && session == requestedSession) {
                 Log.d(TAG, "responding to data interest");
-                Log.d(TAG, "lastPublishedSeqNum() = " + lastPublishedSeqNum());
                 Data response = new Data(interestName);
                 Blob content = new Blob(sentData.get(requestedSeqNum).getBytes());
                 response.setContent(content);
@@ -338,6 +336,8 @@ public abstract class ChronoSyncService extends Service {
                 @Override
                 public void onReceivedSyncState(List syncStates, boolean isRecovery) {
                     Log.d(TAG, "sync states received");
+                    if (isRecovery)
+                        Log.d(TAG, "this is recovery!?");
                     // FIXME handle recovery states properly (?)
                     for (ChronoSync2013.SyncState syncState :
                             (List<ChronoSync2013.SyncState>) syncStates) {
