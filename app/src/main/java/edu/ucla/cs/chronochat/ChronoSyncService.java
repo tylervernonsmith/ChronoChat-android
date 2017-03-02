@@ -316,10 +316,11 @@ public abstract class ChronoSyncService extends Service {
             int requestedSeqNum = Integer.parseInt(seqNumComponent.toEscapedString());
             long requestedSession = Long.parseLong(sessionComponent.toEscapedString());
 
-            if (nextDataSeqNum() > requestedSeqNum && session == requestedSession) {
+            String requestedData = sentData.get(requestedSeqNum);
+            if (requestedData != null && session == requestedSession) {
                 Log.d(TAG, "responding to data interest");
                 Data response = new Data(interestName);
-                Blob content = new Blob(sentData.get(requestedSeqNum).getBytes());
+                Blob content = new Blob(requestedData.getBytes());
                 response.setContent(content);
                 try {
                     face.putData(response);
@@ -354,6 +355,10 @@ public abstract class ChronoSyncService extends Service {
                 public void onInitialized() {
                     Log.d(TAG, "ChronoSync initialization complete; seqnum is now " +
                             sync.getSequenceNo());
+                    // Ensure that sentData is in sync with the initial seqnum
+                    while (nextDataSeqNum() < nextSyncSeqNum()) {
+                        sentData.add(null);
+                    }
                     syncInitialized = true;
                     // TODO: Announce success via broadcast intent?
                 }
