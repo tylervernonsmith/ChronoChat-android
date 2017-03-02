@@ -31,7 +31,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Random;
 
 
 public abstract class ChronoSyncService extends Service {
@@ -63,7 +62,6 @@ public abstract class ChronoSyncService extends Service {
     protected HashMap<String, Long> highestRequestedSeqNums;
     protected ArrayList<String> sentData;
     protected long registeredDataPrefixId;
-    private final Random rng = new Random();
     private long session;
 
     private final Thread networkThread = new Thread(new Runnable() {
@@ -106,7 +104,7 @@ public abstract class ChronoSyncService extends Service {
         broadcastPrefix = new Name(BROADCAST_BASE_PREFIX + groupPrefixComponent);
         highestRequestedSeqNums = new HashMap<>();
         sentData = new ArrayList<>();
-        session = rng.nextLong();
+        session = System.currentTimeMillis();
         send(null); // create placeholder for seqnum 0
         startNetworkThread();
         Log.d(TAG, "service initialized");
@@ -404,8 +402,7 @@ public abstract class ChronoSyncService extends Service {
         public void onTimeout(Interest interest) {
             Name name = interest.getName();
             Log.d(TAG, "timed out waiting for " + name);
-            // FIXME? we just try again...
-            expressDataInterest(name);
+            // FIXME? should we do something other than give up?
         }
     };
 

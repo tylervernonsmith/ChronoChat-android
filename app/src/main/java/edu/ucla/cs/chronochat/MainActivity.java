@@ -182,7 +182,7 @@ public class MainActivity extends AppCompatActivity {
             gravity = Gravity.LEFT;
             showNotification(message, sentBy);
         }
-        
+
         if (!sentBy.equals(lastMessageSentBy)) {
             TextView labelTextView = new TextView(this);
             labelTextView.setText(sentBy);
