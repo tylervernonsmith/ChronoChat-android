@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 
 
 public abstract class ChronoSyncService extends Service {
@@ -176,27 +177,31 @@ public abstract class ChronoSyncService extends Service {
         }
     }
 
-    private void processSyncState(ChronoSync2013.SyncState syncState) {
+    private void processSyncState(ChronoSync2013.SyncState syncState, boolean isRecovery) {
+
         long syncSession = syncState.getSessionNo(),
-             syncSeqNum = syncState.getSequenceNo();
+                syncSeqNum = syncState.getSequenceNo();
         String syncDataPrefix = syncState.getDataPrefix(),
                 syncDataId = syncDataPrefix + "/" + syncSession;
 
+        Log.d(TAG, "received" + (isRecovery ? " RECOVERY " : " ") + "sync state for " +
+                syncState.getDataPrefix() + "/" + syncSession + "/" + syncSeqNum);
+
         if (syncDataPrefix.toString().equals(this.dataPrefix.toString())) {
-            // Ignore sync state for our own user (FIXME is this really needed?)
             Log.d(TAG, "ignoring sync state for own user");
-        } else {
-            if (!nextSeqNumToRequest.keySet().contains(syncDataId)) {
-                // If we don't know about this user yet, add them to our list
-                Log.d(TAG, "recording newly discovered sync prefix/session " + syncDataId);
-                nextSeqNumToRequest.put(syncDataId, 0l);
-            }
-            requestMissingSeqNums(syncDataId, syncSeqNum);
+            return;
         }
+
+        if (isRecovery) {
+            nextSeqNumToRequest.put(syncDataId, syncSeqNum); // skip requesting seqnum again
+        }
+        requestMissingSeqNums(syncDataId, syncSeqNum);
+
     }
 
     private void requestMissingSeqNums(String syncDataId, long availableSeqNum) {
-        long seqNumToRequest = nextSeqNumToRequest.get(syncDataId);
+        Long seqNumToRequest = nextSeqNumToRequest.get(syncDataId);
+        if (seqNumToRequest == null) seqNumToRequest = 0l;
         while (availableSeqNum > seqNumToRequest) {
             String missingDataNameStr = syncDataId + "/" + seqNumToRequest;
             Name missingDataName = new Name(missingDataNameStr);
@@ -337,13 +342,10 @@ public abstract class ChronoSyncService extends Service {
                 @Override
                 public void onReceivedSyncState(List syncStates, boolean isRecovery) {
                     Log.d(TAG, "sync states received");
-                    if (isRecovery)
-                        Log.d(TAG, "this is recovery!?");
                     // FIXME handle recovery states properly (?)
                     for (ChronoSync2013.SyncState syncState :
                             (List<ChronoSync2013.SyncState>) syncStates) {
-                        Log.d(TAG, "received sync state for " + syncState.getDataPrefix());
-                        processSyncState(syncState);
+                        processSyncState(syncState, isRecovery);
                     }
                     Log.d(TAG, "finished processing " + syncStates.size() + " sync states");
                 }
