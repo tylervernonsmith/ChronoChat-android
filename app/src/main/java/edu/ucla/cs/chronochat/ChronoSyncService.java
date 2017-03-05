@@ -81,26 +81,35 @@ public abstract class ChronoSyncService extends Service {
                 registerDataPrefix();
                 setUpChronoSync();
             } catch (Exception e) {
-                Log.e(TAG, "error during network thread initialization", e);
-                raisedErrorCode = ErrorCode.OTHER_EXCEPTION;
-                stopNetworkThread();
+                raiseError("error during network thread initialization",
+                        ErrorCode.OTHER_EXCEPTION, e);
             }
             while (!networkThreadShouldStop) {
                 publishSeqNumsIfNeeded();
                 try {
                     face.processEvents();
                     Thread.sleep(500); // avoid hammering the CPU
+                } catch (IOException e) {
+                    raiseError("error in processEvents loop", ErrorCode.NFD_PROBLEM, e);
                 } catch (Exception e) {
-                    Log.e(TAG, "error in processEvents loop", e);
-                    raisedErrorCode = e instanceof IOException ?
-                            ErrorCode.NFD_PROBLEM : ErrorCode.OTHER_EXCEPTION;
-                    stopNetworkThread();
+                    raiseError("error in processEvents loop", ErrorCode.OTHER_EXCEPTION, e);
                 }
             }
             broadcastIntentIfErrorRaised();
             Log.d(TAG, "network thread stopped");
         }
     });
+
+    private void raiseError(String logMessage, ErrorCode code, Throwable exception) {
+        if (exception == null) Log.e(TAG, logMessage);
+        else Log.e(TAG, logMessage, exception);
+        raisedErrorCode = code;
+        stopNetworkThread();
+    }
+
+    private void raiseError(String logMessage, ErrorCode code) {
+        raiseError(logMessage, code, null);
+    }
 
     private void initializeService() {
         Log.d(TAG, "initializing service...");
@@ -222,9 +231,7 @@ public abstract class ChronoSyncService extends Service {
             face.expressInterest(dataName, OnReceivedSyncData,
                     OnSyncDataInterestTimeout, OnSyncDataInterestNack);
         } catch (IOException e) {
-            Log.e(TAG, "failed to express data interest", e);
-            raisedErrorCode = ErrorCode.NFD_PROBLEM;
-            stopNetworkThread();
+            raiseError("failed to express data interest", ErrorCode.NFD_PROBLEM, e);
         }
     }
 
@@ -236,9 +243,7 @@ public abstract class ChronoSyncService extends Service {
                 sync.publishNextSequenceNo();
                 Log.d(TAG, "published seqnum " + seqNumToPublish);
             } catch (IOException | SecurityException e) {
-                Log.e(TAG, "failed to publish seqnum " + seqNumToPublish, e);
-                raisedErrorCode = ErrorCode.NFD_PROBLEM;
-                stopNetworkThread();
+                raiseError("failed to publish seqnum " + seqNumToPublish, ErrorCode.NFD_PROBLEM, e);
             }
         }
     }
@@ -317,7 +322,7 @@ public abstract class ChronoSyncService extends Service {
 
     protected void broadcastIntentIfErrorRaised() {
         if (raisedErrorCode == null) return;
-        
+
         Log.d(TAG, "broadcasting error intent w/code = " + raisedErrorCode + "...");
         Intent bcast = new Intent(BCAST_ERROR);
         bcast.putExtra(EXTRA_ERROR_CODE, raisedErrorCode);
@@ -348,9 +353,8 @@ public abstract class ChronoSyncService extends Service {
                 try {
                     face.putData(response);
                 } catch (IOException e) {
-                    Log.e(TAG, "failure when responding to data interest", e);
-                    raisedErrorCode = ErrorCode.NFD_PROBLEM;
-                    stopNetworkThread();
+                    raiseError("failure when responding to data interest",
+                            ErrorCode.NFD_PROBLEM, e);
                 }
             }
         }
@@ -393,18 +397,16 @@ public abstract class ChronoSyncService extends Service {
     private final OnRegisterFailed OnDataPrefixRegisterFailed = new OnRegisterFailed() {
         @Override
         public void onRegisterFailed(Name prefix) {
-            Log.e(TAG, "failed to register application prefix " + prefix.toString());
-            raisedErrorCode = ErrorCode.NFD_PROBLEM;
-            stopNetworkThread();
+            raiseError("failed to register application prefix " + prefix.toString(),
+                    ErrorCode.NFD_PROBLEM);
         }
     };
 
     private final OnRegisterFailed OnBroadcastPrefixRegisterFailed = new OnRegisterFailed() {
         @Override
         public void onRegisterFailed(Name prefix) {
-            Log.e(TAG, "failed to register broadcast prefix " + prefix.toString());
-            raisedErrorCode = ErrorCode.NFD_PROBLEM;
-            stopNetworkThread();
+            raiseError("failed to register broadcast prefix " + prefix.toString(),
+                    ErrorCode.NFD_PROBLEM);
         }
     };
 

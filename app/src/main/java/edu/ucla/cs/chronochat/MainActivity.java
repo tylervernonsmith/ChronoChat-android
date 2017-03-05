@@ -36,8 +36,8 @@ public class MainActivity extends AppCompatActivity {
                                 SAVED_PREFIX = TAG + ".prefix";
 
     // index of username component in data names
-    private static int USERNAME_COMPONENT_INDEX = -5,
-                       NOTIFICATION_ID = 0;
+    private static final int USERNAME_COMPONENT_INDEX = -5,
+                             NOTIFICATION_ID = 0;
 
     private EditText editMessage;
     private ViewGroup messages;
@@ -168,7 +168,7 @@ public class MainActivity extends AppCompatActivity {
         String message = intent.getStringExtra(ChronoChatService.EXTRA_MESSAGE);
         String dataNameStr = intent.getStringExtra(ChronoChatService.EXTRA_DATA_NAME);
         Name dataName = new Name(dataNameStr);
-        String receivedFrom = dataName.get(USERNAME_COMPONENT_INDEX).toString();
+        String receivedFrom = dataName.get(USERNAME_COMPONENT_INDEX).toEscapedString();
         Log.d(TAG, "received message \"" + message + "\"" + " from " + receivedFrom);
         addReceivedMessageToView(message, receivedFrom);
     }
