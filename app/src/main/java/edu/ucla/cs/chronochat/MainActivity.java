@@ -8,12 +8,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Typeface;
-import android.support.v4.app.TaskStackBuilder;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.app.NotificationCompat;
-import android.support.v7.widget.Toolbar;
 import android.text.Editable;
 import android.util.Log;
 import android.view.Gravity;
@@ -25,12 +23,14 @@ import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import net.named_data.jndn.Name;
+import edu.ucla.cs.chronochat.ChronoSyncService.ErrorCode;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final String TAG = MainActivity.class.getSimpleName(),
+    private static final String TAG = "MainActivity",
                                 SAVED_USERNAME = TAG + ".username",
                                 SAVED_CHATROOM = TAG + ".chatroom",
                                 SAVED_PREFIX = TAG + ".prefix";
@@ -50,18 +50,24 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             Log.d(TAG, "broadcast received");
-            if (intent.getAction() == ChronoSyncService.BCAST_RECEIVED) {
-                String message = intent.getStringExtra(ChronoChatService.EXTRA_MESSAGE);
-                String dataNameStr = intent.getStringExtra(ChronoChatService.EXTRA_DATA_NAME);
-                Name dataName = new Name(dataNameStr);
-                String receivedFrom = dataName.get(USERNAME_COMPONENT_INDEX).toEscapedString();
-                Log.d(TAG, "received message \"" + message + "\"");
-                addReceivedMessageToView(message, receivedFrom);
+            switch (intent.getAction()) {
+                case ChronoSyncService.BCAST_RECEIVED:
+                    handleReceivedMessage(intent);
+                    break;
+                case ChronoSyncService.BCAST_ERROR:
+                    handleError(intent);
+                    break;
             }
         }
     }
 
     private final LocalBroadcastReceiver broadcastReceiver = new LocalBroadcastReceiver();
+
+    protected void registerBroadcastReceiver(IntentFilter intentFilter) {
+        LocalBroadcastManager.getInstance(this).registerReceiver(
+                broadcastReceiver,
+                intentFilter);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -73,19 +79,17 @@ public class MainActivity extends AppCompatActivity {
         messages = (ViewGroup) findViewById(R.id.messages);
         containerForMessages = (ScrollView) messages.getParent();
 
-//        Toolbar myToolbar = (Toolbar) findViewById(R.id.my_toolbar);
-//        setSupportActionBar(myToolbar);
-
-        IntentFilter statusIntentFilter = new IntentFilter(ChronoSyncService.BCAST_RECEIVED);
-        LocalBroadcastManager.getInstance(this).registerReceiver(
-                broadcastReceiver,
-                statusIntentFilter);
+        IntentFilter broadcastIntentFilter = new IntentFilter(ChronoSyncService.BCAST_RECEIVED);
+        registerBroadcastReceiver(broadcastIntentFilter);
+        broadcastIntentFilter = new IntentFilter(ChronoSyncService.BCAST_ERROR);
+        registerBroadcastReceiver(broadcastIntentFilter);
 
         getLoginInfo(savedInstanceState);
     }
 
     private void getLoginInfo(Bundle savedInstanceState) {
         if (savedInstanceState == null) {
+            messages.removeAllViews();
             startActivityForResult(new Intent(this, LoginActivity.class), 0);
         } else {
             username = savedInstanceState.getString(SAVED_USERNAME);
@@ -132,8 +136,6 @@ public class MainActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.action_leave:
-                // rudimentary "logout"
-                messages.removeAllViews();
                 getLoginInfo(null);
                 return true;
             default:
@@ -160,6 +162,15 @@ public class MainActivity extends AppCompatActivity {
                 .putExtra(ChronoChatService.EXTRA_CHATROOM, chatroom)
                 .putExtra(ChronoChatService.EXTRA_PREFIX, prefix);
         return intent;
+    }
+
+    private void handleReceivedMessage(Intent intent) {
+        String message = intent.getStringExtra(ChronoChatService.EXTRA_MESSAGE);
+        String dataNameStr = intent.getStringExtra(ChronoChatService.EXTRA_DATA_NAME);
+        Name dataName = new Name(dataNameStr);
+        String receivedFrom = dataName.get(USERNAME_COMPONENT_INDEX).toString();
+        Log.d(TAG, "received message \"" + message + "\"" + " from " + receivedFrom);
+        addReceivedMessageToView(message, receivedFrom);
     }
 
     private void addReceivedMessageToView(String message, String receivedFrom) {
@@ -198,6 +209,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void scrollToLastMessage() {
+        // FIXME
         containerForMessages.fullScroll(ScrollView.FOCUS_DOWN);
     }
 
@@ -221,6 +233,22 @@ public class MainActivity extends AppCompatActivity {
         NotificationManager notificationManager =
                 (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.notify(NOTIFICATION_ID, builder.build());
+    }
+
+    private void handleError(Intent intent) {
+        ErrorCode errorCode =
+                (ErrorCode) intent.getSerializableExtra(ChronoSyncService.EXTRA_ERROR_CODE);
+        String toastText = "";
+        switch (errorCode) {
+            case NFD_PROBLEM:
+                toastText = "Encountered an NFD error... maybe the service has closed?";
+                break;
+            case OTHER_EXCEPTION:
+                toastText = "Encountered an error, please check debug logs...";
+                break;
+        }
+        Toast.makeText(getApplicationContext(), toastText, Toast.LENGTH_LONG).show();
+        getLoginInfo(null);
     }
 
 }

@@ -18,7 +18,7 @@ import net.named_data.jndn.OnNetworkNack;
 import net.named_data.jndn.OnRegisterFailed;
 import net.named_data.jndn.OnRegisterSuccess;
 import net.named_data.jndn.OnTimeout;
-import net.named_data.jndn.encoding.EncodingException;
+import net.named_data.jndn.encrypt.ConsumerDb;
 import net.named_data.jndn.security.KeyChain;
 import net.named_data.jndn.security.SecurityException;
 import net.named_data.jndn.security.identity.IdentityManager;
@@ -31,13 +31,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Objects;
 
 
 public abstract class ChronoSyncService extends Service {
 
     private static final String FACE_URI = "localhost",
-                                TAG = ChronoSyncService.class.getSimpleName(),
+                                TAG = "ChronoSyncService",
                                 BROADCAST_BASE_PREFIX = "/ndn/broadcast";
     private static final double SYNC_LIFETIME = 5000.0; // FIXME?
 
@@ -46,11 +45,17 @@ public abstract class ChronoSyncService extends Service {
             INTENT_PREFIX = "edu.ucla.cs.ChronoChat." + TAG + ".",
             ACTION_SEND = INTENT_PREFIX + "ACTION_SEND",
             BCAST_RECEIVED = INTENT_PREFIX + "BCAST_RECEIVED",
+            BCAST_ERROR = INTENT_PREFIX + "BCAST_ERROR",
             EXTRA_MESSAGE = INTENT_PREFIX + "EXTRA_MESSAGE",
-            EXTRA_DATA_NAME = INTENT_PREFIX + "EXTRA_DATA_NAME";
+            EXTRA_DATA_NAME = INTENT_PREFIX + "EXTRA_DATA_NAME",
+            EXTRA_ERROR_CODE = INTENT_PREFIX + "EXTRA_ERROR_CODE";
     protected static final String
             EXTRA_USER_PREFIX_COMPONENT = INTENT_PREFIX + "EXTRA_USER_PREFIX_COMPONENT",
             EXTRA_GROUP_PREFIX_COMPONENT = INTENT_PREFIX + "EXTRA_GROUP_PREFIX_COMPONENT";
+
+    public enum ErrorCode { NFD_PROBLEM, OTHER_EXCEPTION }
+
+    private ErrorCode raisedErrorCode = null;
 
     protected String userPrefixComponent, groupPrefixComponent;
     private Face face;
@@ -76,24 +81,23 @@ public abstract class ChronoSyncService extends Service {
                 registerDataPrefix();
                 setUpChronoSync();
             } catch (Exception e) {
+                Log.e(TAG, "error during network thread initialization", e);
+                raisedErrorCode = ErrorCode.OTHER_EXCEPTION;
                 stopNetworkThread();
-                e.printStackTrace();
-                // TODO raise some kind of error/uninitialized flag?
             }
             while (!networkThreadShouldStop) {
                 publishSeqNumsIfNeeded();
                 try {
                     face.processEvents();
-                } catch (IOException | EncodingException e) {
-                    Log.d(TAG, "Error calling processEvents()");
-                    e.printStackTrace();
-                }
-                try {
                     Thread.sleep(500); // avoid hammering the CPU
-                } catch (InterruptedException e) {
-                    Log.d(TAG, "network thread interrupted");
+                } catch (Exception e) {
+                    Log.e(TAG, "error in processEvents loop", e);
+                    raisedErrorCode = e instanceof IOException ?
+                            ErrorCode.NFD_PROBLEM : ErrorCode.OTHER_EXCEPTION;
+                    stopNetworkThread();
                 }
             }
+            broadcastIntentIfErrorRaised();
             Log.d(TAG, "network thread stopped");
         }
     });
@@ -145,35 +149,34 @@ public abstract class ChronoSyncService extends Service {
                 keyChain.getIdentityManager().setDefaultIdentity(testIdName);
                 Log.d(TAG, "created default ID: " + defaultCertificateName.toString());
             } catch (SecurityException e2) {
-                Log.d(TAG, "unable to create default identity");
-                e.printStackTrace();
+                Log.e(TAG, "unable to create default identity", e);
                 defaultCertificateName = new Name("/bogus/certificate/name"); // FIXME
             }
         }
         face.setCommandSigningInfo(keyChain, defaultCertificateName);
     }
 
-    private void registerDataPrefix() {
+    private void registerDataPrefix () {
+        Log.d(TAG, "registering data prefix...");
         try {
-            Log.d(TAG, "registering data prefix...");
             registeredDataPrefixId = face.registerPrefix(dataPrefix, OnDataInterest,
                     OnDataPrefixRegisterFailed, OnDataPrefixRegisterSuccess);
         } catch (IOException | SecurityException e) {
-            Log.d(TAG, "exception when registering data prefix: " + e.getMessage());
-            e.printStackTrace();
+            Log.d(TAG, "exception registering data prefix"); // will also be handled in callback
+            stopNetworkThread(); // just in case
         }
+
     }
 
     private void setUpChronoSync() {
-        Log.d(TAG, "initializing ChronoSync...");
         try {
             sync = new ChronoSync2013(OnReceivedChronoSyncState, OnChronoSyncInitialized,
                     dataPrefix, broadcastPrefix, session, face, keyChain,
                     keyChain.getDefaultCertificateName(), SYNC_LIFETIME,
                     OnBroadcastPrefixRegisterFailed);
         } catch (IOException | SecurityException e) {
-            Log.d(TAG, "exception when initializing ChronoSync: " + e.getMessage());
-            stopNetworkThread();
+            Log.d(TAG, "exception setting up ChronoSync"); // will also be handled in callback
+            stopNetworkThread(); // just in case
         }
     }
 
@@ -219,8 +222,9 @@ public abstract class ChronoSyncService extends Service {
             face.expressInterest(dataName, OnReceivedSyncData,
                     OnSyncDataInterestTimeout, OnSyncDataInterestNack);
         } catch (IOException e) {
-            Log.d(TAG, "failed to express data interest");
-            e.printStackTrace();
+            Log.e(TAG, "failed to express data interest", e);
+            raisedErrorCode = ErrorCode.NFD_PROBLEM;
+            stopNetworkThread();
         }
     }
 
@@ -232,8 +236,9 @@ public abstract class ChronoSyncService extends Service {
                 sync.publishNextSequenceNo();
                 Log.d(TAG, "published seqnum " + seqNumToPublish);
             } catch (IOException | SecurityException e) {
-                Log.d(TAG, "failed to publish seqnum " + seqNumToPublish);
-                e.printStackTrace();
+                Log.e(TAG, "failed to publish seqnum " + seqNumToPublish, e);
+                raisedErrorCode = ErrorCode.NFD_PROBLEM;
+                stopNetworkThread();
             }
         }
     }
@@ -282,6 +287,7 @@ public abstract class ChronoSyncService extends Service {
     public IBinder onBind(Intent _) { return null; }
 
     private void shutdown() {
+        Log.d(TAG, "shutting down/resetting service...");
         syncInitialized = false;
         if (sync != null) sync.shutdown();
         if (face != null) {
@@ -289,6 +295,7 @@ public abstract class ChronoSyncService extends Service {
             face.shutdown();
         }
         stopNetworkThread();
+        Log.d(TAG, "waiting for network thread to finish...");
         while (networkThread.isAlive()) {
             try {
                 Thread.sleep(100);
@@ -299,11 +306,22 @@ public abstract class ChronoSyncService extends Service {
         }
         face = null;
         sync = null;
+        raisedErrorCode = null;
+        Log.d(TAG, "service shutdown complete");
     }
 
     protected void send(String message) {
         sentData.add(message);
         Log.d(TAG, "sending \"" + message + "\"");
+    }
+
+    protected void broadcastIntentIfErrorRaised() {
+        if (raisedErrorCode == null) return;
+        
+        Log.d(TAG, "broadcasting error intent w/code = " + raisedErrorCode + "...");
+        Intent bcast = new Intent(BCAST_ERROR);
+        bcast.putExtra(EXTRA_ERROR_CODE, raisedErrorCode);
+        LocalBroadcastManager.getInstance(ChronoSyncService.this).sendBroadcast(bcast);
     }
 
 
@@ -330,8 +348,9 @@ public abstract class ChronoSyncService extends Service {
                 try {
                     face.putData(response);
                 } catch (IOException e) {
-                    Log.d(TAG, "failure when responding to data interest");
-                    e.printStackTrace();
+                    Log.e(TAG, "failure when responding to data interest", e);
+                    raisedErrorCode = ErrorCode.NFD_PROBLEM;
+                    stopNetworkThread();
                 }
             }
         }
@@ -342,7 +361,6 @@ public abstract class ChronoSyncService extends Service {
                 @Override
                 public void onReceivedSyncState(List syncStates, boolean isRecovery) {
                     Log.d(TAG, "sync states received");
-                    // FIXME handle recovery states properly (?)
                     for (ChronoSync2013.SyncState syncState :
                             (List<ChronoSync2013.SyncState>) syncStates) {
                         processSyncState(syncState, isRecovery);
@@ -362,7 +380,6 @@ public abstract class ChronoSyncService extends Service {
                         sentData.add(null);
                     }
                     syncInitialized = true;
-                    // TODO: Announce success via broadcast intent?
                 }
             };
 
@@ -376,18 +393,18 @@ public abstract class ChronoSyncService extends Service {
     private final OnRegisterFailed OnDataPrefixRegisterFailed = new OnRegisterFailed() {
         @Override
         public void onRegisterFailed(Name prefix) {
+            Log.e(TAG, "failed to register application prefix " + prefix.toString());
+            raisedErrorCode = ErrorCode.NFD_PROBLEM;
             stopNetworkThread();
-            Log.d(TAG, "failed to register application prefix " + prefix.toString());
-            // TODO: Announce failure via broadcast intent?
         }
     };
 
     private final OnRegisterFailed OnBroadcastPrefixRegisterFailed = new OnRegisterFailed() {
         @Override
         public void onRegisterFailed(Name prefix) {
+            Log.e(TAG, "failed to register broadcast prefix " + prefix.toString());
+            raisedErrorCode = ErrorCode.NFD_PROBLEM;
             stopNetworkThread();
-            Log.d(TAG, "failed to register broadcast prefix " + prefix.toString());
-            // TODO: Announce failure via broadcast intent?
         }
     };
 
@@ -418,6 +435,7 @@ public abstract class ChronoSyncService extends Service {
         public void onNetworkNack(Interest interest, NetworkNack networkNack) {
             Name name = interest.getName();
             Log.d(TAG, "received NACK for " + name);
+            // FIXME? should we do something other than give up?
         }
     };
 }

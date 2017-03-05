@@ -9,7 +9,7 @@ import android.widget.EditText;
 
 public class LoginActivity extends AppCompatActivity {
 
-    private static final String TAG = LoginActivity.class.getSimpleName(),
+    private static final String TAG = "LoginActivity",
                                 DEFAULT_CHATROOM = "chatroom",
                                 DEFAULT_PREFIX = "/ndn/test";
 

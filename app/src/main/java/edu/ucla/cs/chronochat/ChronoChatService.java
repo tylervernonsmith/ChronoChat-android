@@ -5,7 +5,7 @@ import android.content.Intent;
 
 public class ChronoChatService extends ChronoSyncService {
 
-    private static final String TAG = ChronoChatService.class.getSimpleName();
+    private static final String TAG = "ChronoChatService";
 
     public static final String EXTRA_USERNAME = INTENT_PREFIX + "EXTRA_USERNAME",
                                EXTRA_CHATROOM = INTENT_PREFIX + "EXTRA_CHATROOM",
