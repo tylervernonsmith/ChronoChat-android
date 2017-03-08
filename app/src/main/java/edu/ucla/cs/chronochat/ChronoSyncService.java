@@ -18,7 +18,6 @@ import net.named_data.jndn.OnNetworkNack;
 import net.named_data.jndn.OnRegisterFailed;
 import net.named_data.jndn.OnRegisterSuccess;
 import net.named_data.jndn.OnTimeout;
-import net.named_data.jndn.encrypt.ConsumerDb;
 import net.named_data.jndn.security.KeyChain;
 import net.named_data.jndn.security.SecurityException;
 import net.named_data.jndn.security.identity.IdentityManager;
@@ -73,7 +72,6 @@ public abstract class ChronoSyncService extends Service {
     private final Thread networkThread = new Thread(new Runnable() {
         @Override
         public void run () {
-            networkThreadShouldStop = false;
             Log.d(TAG, "network thread started");
             try {
                 initializeKeyChain();
@@ -96,6 +94,7 @@ public abstract class ChronoSyncService extends Service {
                 }
             }
             broadcastIntentIfErrorRaised();
+            cleanup();
             Log.d(TAG, "network thread stopped");
         }
     });
@@ -132,7 +131,17 @@ public abstract class ChronoSyncService extends Service {
     private void stopNetworkThread() {
         networkThreadShouldStop = true;
     }
-
+    private void stopNetworkThreadAndBlockUntilDone() {
+        stopNetworkThread();
+        Log.d(TAG, "waiting for network thread to stop...");
+        while(networkThread.isAlive()) {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Log.e(TAG, "interruption while waiting for network thread to stop", e);
+            }
+        }
+    }
 
     private void initializeKeyChain() {
         Log.d(TAG, "initializing keychain");
@@ -199,7 +208,7 @@ public abstract class ChronoSyncService extends Service {
         Log.d(TAG, "received" + (isRecovery ? " RECOVERY " : " ") + "sync state for " +
                 syncState.getDataPrefix() + "/" + syncSession + "/" + syncSeqNum);
 
-        if (syncDataPrefix.toString().equals(this.dataPrefix.toString())) {
+        if (syncDataPrefix.equals(this.dataPrefix.toString())) {
             Log.d(TAG, "ignoring sync state for own user");
             return;
         }
@@ -213,7 +222,7 @@ public abstract class ChronoSyncService extends Service {
 
     private void requestMissingSeqNums(String syncDataId, long availableSeqNum) {
         Long seqNumToRequest = nextSeqNumToRequest.get(syncDataId);
-        if (seqNumToRequest == null) seqNumToRequest = 0l;
+        if (seqNumToRequest == null) seqNumToRequest = 0L;
         while (availableSeqNum > seqNumToRequest) {
             String missingDataNameStr = syncDataId + "/" + seqNumToRequest;
             Name missingDataName = new Name(missingDataNameStr);
@@ -255,7 +264,8 @@ public abstract class ChronoSyncService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
 
         if (intent != null) {
-            Log.d(TAG, "received intent " + intent.getAction());
+            String action = intent.getAction();
+            Log.d(TAG, "received intent " + action);
 
             String userPrefixComponentFromIntent = intent.getStringExtra(EXTRA_USER_PREFIX_COMPONENT),
                     groupPrefixComponentFromIntent = intent.getStringExtra(EXTRA_GROUP_PREFIX_COMPONENT);
@@ -268,10 +278,10 @@ public abstract class ChronoSyncService extends Service {
                 Log.d(TAG, "new user/group prefix detected...");
                 userPrefixComponent = userPrefixComponentFromIntent;
                 groupPrefixComponent = groupPrefixComponentFromIntent;
-                shutdown();
+                stopNetworkThreadAndBlockUntilDone();
                 initializeService();
             }
-            if (intent.getAction() == ACTION_SEND) {
+            if (ACTION_SEND.equals(action)) {
                 String message = intent.getStringExtra(EXTRA_MESSAGE);
                 send(message);
             }
@@ -284,35 +294,22 @@ public abstract class ChronoSyncService extends Service {
     public void onDestroy() {
         // attempt to clean up after ourselves
         Log.d(TAG, "onDestroy() cleaning up...");
-        shutdown();
+        stopNetworkThreadAndBlockUntilDone();
         Log.d(TAG, "exiting onDestroy");
     }
 
     @Override
     public IBinder onBind(Intent _) { return null; }
 
-    private void shutdown() {
-        Log.d(TAG, "shutting down/resetting service...");
+    private void cleanup() {
+        Log.d(TAG, "cleaning up and resetting service...");
         syncInitialized = false;
         if (sync != null) sync.shutdown();
-        if (face != null) {
-            face.removeRegisteredPrefix(registeredDataPrefixId);
-            face.shutdown();
-        }
-        stopNetworkThread();
-        Log.d(TAG, "waiting for network thread to finish...");
-        while (networkThread.isAlive()) {
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                Log.d(TAG, "interruption while waiting for network thread to stop");
-                e.printStackTrace();
-            }
-        }
+        if (face != null) face.shutdown();
         face = null;
         sync = null;
         raisedErrorCode = null;
-        Log.d(TAG, "service shutdown complete");
+        Log.d(TAG, "service cleanup/reset complete");
     }
 
     protected void send(String message) {

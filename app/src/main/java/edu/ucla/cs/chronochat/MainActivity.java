@@ -210,7 +210,12 @@ public class MainActivity extends AppCompatActivity {
 
     private void scrollToLastMessage() {
         // FIXME
-        containerForMessages.fullScroll(ScrollView.FOCUS_DOWN);
+        containerForMessages.post(new Runnable() {
+            @Override
+            public void run() {
+                containerForMessages.fullScroll(ScrollView.FOCUS_DOWN);
+            }
+        });
     }
 
     private void showNotification(String message, String sentBy) {
