@@ -213,9 +213,12 @@ public abstract class ChronoSyncService extends Service {
             return;
         }
 
-        if (isRecovery) {
-            nextSeqNumToRequest.put(syncDataId, syncSeqNum); // skip requesting seqnum again
+        if (nextSeqNumToRequest.get(syncDataId) == null) {
+            nextSeqNumToRequest.put(syncDataId, syncSeqNum);
         }
+//        if (isRecovery) {
+//            nextSeqNumToRequest.put(syncDataId, syncSeqNum); // skip requesting seqnum again
+//        }
         requestMissingSeqNums(syncDataId, syncSeqNum);
 
     }
