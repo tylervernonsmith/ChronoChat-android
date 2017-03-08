@@ -213,9 +213,11 @@ public abstract class ChronoSyncService extends Service {
             return;
         }
 
-        if (nextSeqNumToRequest.get(syncDataId) == null) {
-            nextSeqNumToRequest.put(syncDataId, syncSeqNum);
-        }
+        // FIXME handle recovery states properly (?)
+        
+//        if (nextSeqNumToRequest.get(syncDataId) == null) {
+//            nextSeqNumToRequest.put(syncDataId, syncSeqNum);
+//        }
 //        if (isRecovery) {
 //            nextSeqNumToRequest.put(syncDataId, syncSeqNum); // skip requesting seqnum again
 //        }
