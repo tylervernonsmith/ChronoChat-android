@@ -94,6 +94,7 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         activityVisible = true;
         hideNotification();
+        scrollToLastMessage();
     }
 
     @Override
@@ -105,6 +106,7 @@ public class MainActivity extends AppCompatActivity {
     private void getLoginInfo(Bundle savedInstanceState) {
         if (savedInstanceState == null) {
             messages.removeAllViews();
+            lastMessageSentBy = null;
             startActivityForResult(new Intent(this, LoginActivity.class), 0);
         } else {
             username = savedInstanceState.getString(SAVED_USERNAME);
