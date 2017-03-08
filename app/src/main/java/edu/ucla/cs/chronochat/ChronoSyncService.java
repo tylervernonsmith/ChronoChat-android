@@ -56,17 +56,17 @@ public abstract class ChronoSyncService extends Service {
 
     private ErrorCode raisedErrorCode = null;
 
-    protected String userPrefixComponent, groupPrefixComponent;
+    private String userPrefixComponent, groupPrefixComponent;
     private Face face;
     private Name dataPrefix, broadcastPrefix;
 
-    protected ChronoSync2013 sync;
+    private ChronoSync2013 sync;
     private boolean networkThreadShouldStop;
-    protected boolean syncInitialized = false;
+    private boolean syncInitialized = false;
     private KeyChain keyChain;
-    protected HashMap<String, Long> nextSeqNumToRequest;
-    protected ArrayList<String> sentData;
-    protected long registeredDataPrefixId;
+    private HashMap<String, Long> nextSeqNumToRequest;
+    private ArrayList<String> sentData;
+    private long registeredDataPrefixId;
     private long session;
 
     private final Thread networkThread = new Thread(new Runnable() {
@@ -247,7 +247,7 @@ public abstract class ChronoSyncService extends Service {
         }
     }
 
-    protected void publishSeqNumsIfNeeded() {
+    private void publishSeqNumsIfNeeded() {
         if (!syncInitialized) return;
         while(nextSyncSeqNum() < nextDataSeqNum()) {
             long seqNumToPublish = nextSyncSeqNum();
@@ -260,8 +260,8 @@ public abstract class ChronoSyncService extends Service {
         }
     }
 
-    public int nextDataSeqNum() { return sentData.size(); }
-    public long nextSyncSeqNum() { return sync.getSequenceNo(); }
+    private int nextDataSeqNum() { return sentData.size(); }
+    private long nextSyncSeqNum() { return sync.getSequenceNo(); }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -315,12 +315,12 @@ public abstract class ChronoSyncService extends Service {
         Log.d(TAG, "service cleanup/reset complete");
     }
 
-    protected void send(String message) {
+    private void send(String message) {
         sentData.add(message);
         Log.d(TAG, "sending \"" + message + "\"");
     }
 
-    protected void broadcastIntentIfErrorRaised() {
+    private void broadcastIntentIfErrorRaised() {
         if (raisedErrorCode == null) return;
 
         Log.d(TAG, "broadcasting error intent w/code = " + raisedErrorCode + "...");
@@ -410,7 +410,7 @@ public abstract class ChronoSyncService extends Service {
         }
     };
 
-    public final OnData OnReceivedSyncData = new OnData() {
+    private final OnData OnReceivedSyncData = new OnData() {
         @Override
         public void onData(Interest interest, Data data) {
             Blob blob = data.getContent();
@@ -423,7 +423,7 @@ public abstract class ChronoSyncService extends Service {
         }
     };
 
-    public final OnTimeout OnSyncDataInterestTimeout = new OnTimeout() {
+    private final OnTimeout OnSyncDataInterestTimeout = new OnTimeout() {
         @Override
         public void onTimeout(Interest interest) {
             Name name = interest.getName();
@@ -432,7 +432,7 @@ public abstract class ChronoSyncService extends Service {
         }
     };
 
-    public final OnNetworkNack OnSyncDataInterestNack = new OnNetworkNack() {
+    private final OnNetworkNack OnSyncDataInterestNack = new OnNetworkNack() {
         @Override
         public void onNetworkNack(Interest interest, NetworkNack networkNack) {
             Name name = interest.getName();
