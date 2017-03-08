@@ -45,6 +45,8 @@ public class MainActivity extends AppCompatActivity {
 
     private String username, chatroom, prefix, lastMessageSentBy;
 
+    private boolean activityVisible = false;
+
     private class LocalBroadcastReceiver extends BroadcastReceiver {
 
         @Override
@@ -85,6 +87,19 @@ public class MainActivity extends AppCompatActivity {
         registerBroadcastReceiver(broadcastIntentFilter);
 
         getLoginInfo(savedInstanceState);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        activityVisible = true;
+        hideNotification();
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        activityVisible = false;
     }
 
     private void getLoginInfo(Bundle savedInstanceState) {
@@ -219,6 +234,8 @@ public class MainActivity extends AppCompatActivity {
 
     private void showNotification(String message, String sentBy) {
 
+        if (activityVisible) return;
+
         NotificationCompat.Builder builder =
                 (NotificationCompat.Builder) new NotificationCompat.Builder(this)
                         .setSmallIcon(R.drawable.notification_icon)
@@ -237,6 +254,12 @@ public class MainActivity extends AppCompatActivity {
         NotificationManager notificationManager =
                 (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.notify(NOTIFICATION_ID, builder.build());
+    }
+
+    private void hideNotification() {
+        NotificationManager notificationManager =
+                (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationManager.cancel(NOTIFICATION_ID);
     }
 
     private void handleError(Intent intent) {
