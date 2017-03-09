@@ -110,8 +110,8 @@ public class MainActivity extends AppCompatActivity {
             startActivityForResult(new Intent(this, LoginActivity.class), 0);
         } else {
             username = savedInstanceState.getString(SAVED_USERNAME);
-            chatroom = savedInstanceState.getString(SAVED_CHATROOM);
             prefix = savedInstanceState.getString(SAVED_PREFIX);
+            setChatroom(savedInstanceState.getString(SAVED_CHATROOM));
         }
     }
 
@@ -121,8 +121,8 @@ public class MainActivity extends AppCompatActivity {
             startActivityForResult(new Intent(this, LoginActivity.class), 0);
         }
         username = data.getStringExtra(ChronoChatService.EXTRA_USERNAME);
-        chatroom = data.getStringExtra(ChronoChatService.EXTRA_CHATROOM);
         prefix = data.getStringExtra(ChronoChatService.EXTRA_PREFIX);
+        setChatroom(data.getStringExtra(ChronoChatService.EXTRA_CHATROOM));
 
         Intent intent = getChronoChatServiceIntent(null);
         startService(intent);
@@ -157,6 +157,11 @@ public class MainActivity extends AppCompatActivity {
             default:
                 return super.onOptionsItemSelected(item);
         }
+    }
+
+    private void setChatroom(String chatroom) {
+        this.chatroom = chatroom;
+        getSupportActionBar().setTitle(chatroom);
     }
 
     public void sendMessage(View view) {
