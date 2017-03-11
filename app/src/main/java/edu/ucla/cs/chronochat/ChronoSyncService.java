@@ -300,7 +300,7 @@ public abstract class ChronoSyncService extends Service {
     }
 
     @Override
-    public IBinder onBind(Intent _) { return null; }
+    public IBinder onBind(Intent intent) { return null; }
 
     private void cleanup() {
         Log.d(TAG, "cleaning up and resetting service...");
