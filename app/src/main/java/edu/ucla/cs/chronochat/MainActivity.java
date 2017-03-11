@@ -7,25 +7,25 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.graphics.Typeface;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.app.NotificationCompat;
 import android.text.Editable;
 import android.util.Log;
-import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
-import android.widget.ScrollView;
-import android.widget.TextView;
+import android.widget.ListView;
 import android.widget.Toast;
 
 import net.named_data.jndn.Name;
+
+import java.util.ArrayList;
+
 import edu.ucla.cs.chronochat.ChronoSyncService.ErrorCode;
 
 public class MainActivity extends AppCompatActivity {
@@ -37,11 +37,13 @@ public class MainActivity extends AppCompatActivity {
 
     // index of username component in data names
     private static final int USERNAME_COMPONENT_INDEX = -5,
-                             NOTIFICATION_ID = 0;
+                             NOTIFICATION_ID = 0,
+                             MESSAGE_LAYOUT = android.R.layout.simple_list_item_1;
 
     private EditText editMessage;
-    private ViewGroup messages;
-    private ScrollView containerForMessages;
+    private ListView messageView;
+    private ArrayList<String> messageList = new ArrayList<>();
+    private ArrayAdapter<String> messageListAdapter;
 
     private String username, chatroom, prefix, lastMessageSentBy;
 
@@ -78,8 +80,11 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG, "onCreate");
 
         editMessage = (EditText) findViewById(R.id.edit_message);
-        messages = (ViewGroup) findViewById(R.id.messages);
-        containerForMessages = (ScrollView) messages.getParent();
+        messageView = (ListView) findViewById(R.id.message_view);
+
+        messageListAdapter =
+                new ArrayAdapter<>(this, MESSAGE_LAYOUT, messageList);
+        messageView.setAdapter(messageListAdapter);
 
         IntentFilter broadcastIntentFilter = new IntentFilter(ChronoSyncService.BCAST_RECEIVED);
         registerBroadcastReceiver(broadcastIntentFilter);
@@ -94,7 +99,6 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         activityVisible = true;
         hideNotification();
-        scrollToLastMessage();
     }
 
     @Override
@@ -105,7 +109,8 @@ public class MainActivity extends AppCompatActivity {
 
     private void getLoginInfo(Bundle savedInstanceState) {
         if (savedInstanceState == null) {
-            messages.removeAllViews();
+            messageList.clear();
+            messageListAdapter.notifyDataSetChanged();
             lastMessageSentBy = null;
             startActivityForResult(new Intent(this, LoginActivity.class), 0);
         } else {
@@ -170,6 +175,7 @@ public class MainActivity extends AppCompatActivity {
         if (message.equals("")) return;
         messageText.clear();
         addSentMessageToView(message);
+        lastMessageSentBy = username;
 
         Intent intent = getChronoChatServiceIntent(ChronoChatService.ACTION_SEND);
         intent.putExtra(ChronoChatService.EXTRA_MESSAGE, message);
@@ -191,6 +197,8 @@ public class MainActivity extends AppCompatActivity {
         Name dataName = new Name(dataNameStr);
         String receivedFrom = dataName.get(USERNAME_COMPONENT_INDEX).toEscapedString();
         Log.d(TAG, "received message \"" + message + "\"" + " from " + receivedFrom);
+        showNotification(message, receivedFrom);
+        lastMessageSentBy = receivedFrom;
         addReceivedMessageToView(message, receivedFrom);
     }
 
@@ -203,40 +211,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void addMessageToView(String message, String sentBy) {
-
-        TextView textView = new TextView(this);
-        textView.setText(message);
-        final int gravity;
-
-        if (sentBy.equals(username)) {
-            gravity = Gravity.RIGHT;
-        } else {
-            gravity = Gravity.LEFT;
-            showNotification(message, sentBy);
-        }
-
-        if (!sentBy.equals(lastMessageSentBy)) {
-            TextView labelTextView = new TextView(this);
-            labelTextView.setText(sentBy);
-            labelTextView.setTypeface(null, Typeface.BOLD);
-            labelTextView.setGravity(gravity);
-            messages.addView(labelTextView);
-        }
-        lastMessageSentBy = sentBy;
-
-        textView.setGravity(gravity);
-        messages.addView(textView);
-        scrollToLastMessage();
-    }
-
-    private void scrollToLastMessage() {
-        // FIXME
-        containerForMessages.post(new Runnable() {
-            @Override
-            public void run() {
-                containerForMessages.fullScroll(ScrollView.FOCUS_DOWN);
-            }
-        });
+        messageList.add(sentBy + ": " + message);
+        messageListAdapter.notifyDataSetChanged();
     }
 
     private void showNotification(String message, String sentBy) {
