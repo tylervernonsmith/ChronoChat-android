@@ -28,10 +28,12 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     public void onSignIn(View view) {
+        final String username = this.username.getText().toString().trim(),
+                     chatroom = this.chatroom.getText().toString().trim(),
+                     prefix = this.prefix.getText().toString().trim();
+
         // FIXME validation
-        final String username = this.username.getText().toString(),
-                     chatroom = this.chatroom.getText().toString(),
-                     prefix = this.prefix.getText().toString();
+        if (username.equals("") || chatroom.equals("") || prefix.equals("")) return;
 
         Log.d(TAG, "username = \"" + username + "\", chatroom = \"" + chatroom + "\", prefix = \"" +
                 prefix + "\"");
