@@ -24,6 +24,10 @@ public class MessagesAdapter extends ArrayAdapter<Message> {
                              TYPE_RECEIVED_MESSAGE_ONLY = 3,
                              VIEW_TYPE_COUNT = 4;
 
+    private static class ViewHolder {
+        TextView usernameView, messageTextView;
+    }
+
     public MessagesAdapter(Context context, ArrayList<Message> messages) {
         super(context, 0, messages);
     }
@@ -37,7 +41,6 @@ public class MessagesAdapter extends ArrayAdapter<Message> {
     public int getItemViewType(int position) {
         Message thisMessage = getItem(position);
         boolean sent = thisMessage.getUsername().equals(loggedInUsername);
-        Log.d(TAG, "getItemViewType: sent = " + sent);
         if (position > 0) {
             Message previousMessage = getItem(position - 1);
             if (thisMessage.getUsername().equals(previousMessage.getUsername()))
@@ -48,16 +51,23 @@ public class MessagesAdapter extends ArrayAdapter<Message> {
 
     @Override
     public View getView(int position, View view, ViewGroup parent) {
-
         Message message = getItem(position);
+        ViewHolder viewHolder;
 
-        if (view == null)
+        if (view == null) {
+            viewHolder = new ViewHolder();
             view = getInflatedView(position, parent);
+            viewHolder.usernameView = (TextView) view.findViewById(R.id.message_username);
+            viewHolder.messageTextView = (TextView) view.findViewById(R.id.message_text);
+            view.setTag(viewHolder);
+        } else {
+            viewHolder = (ViewHolder) view.getTag();
+        }
 
-        TextView usernameView = (TextView) view.findViewById(R.id.message_username),
-                 textView     = (TextView) view.findViewById(R.id.message_text);
+        TextView usernameView = viewHolder.usernameView,
+                 messageTextView = viewHolder.messageTextView;
 
-        textView.setText(message.getText());
+        messageTextView.setText(message.getText());
         if (usernameView != null) usernameView.setText(message.getUsername());
 
         return view;
