@@ -117,7 +117,7 @@ public class MainActivity extends AppCompatActivity {
             lastMessageSentBy = null;
             startActivityForResult(new Intent(this, LoginActivity.class), 0);
         } else {
-            username = savedInstanceState.getString(SAVED_USERNAME);
+            setUsername(savedInstanceState.getString(SAVED_USERNAME));
             prefix = savedInstanceState.getString(SAVED_PREFIX);
             setChatroom(savedInstanceState.getString(SAVED_CHATROOM));
         }
@@ -128,7 +128,7 @@ public class MainActivity extends AppCompatActivity {
         if (resultCode != RESULT_OK) {
             startActivityForResult(new Intent(this, LoginActivity.class), 0);
         }
-        username = data.getStringExtra(ChronoChatService.EXTRA_USERNAME);
+        setUsername(data.getStringExtra(ChronoChatService.EXTRA_USERNAME));
         prefix = data.getStringExtra(ChronoChatService.EXTRA_PREFIX);
         setChatroom(data.getStringExtra(ChronoChatService.EXTRA_CHATROOM));
 
@@ -167,6 +167,11 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void setUsername(String username) {
+        this.username = username;
+        messageListAdapter.setLoggedInUsername(username);
+    }
+
     private void setChatroom(String chatroom) {
         this.chatroom = chatroom;
         getSupportActionBar().setTitle(chatroom);
@@ -202,6 +207,7 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG, "received message \"" + message + "\"" + " from " + receivedFrom);
         showNotification(message, receivedFrom);
         lastMessageSentBy = receivedFrom;
+        addReceivedMessageToView(message, receivedFrom);
         addReceivedMessageToView(message, receivedFrom);
     }
 
