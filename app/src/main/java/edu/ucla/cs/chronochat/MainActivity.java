@@ -42,8 +42,10 @@ public class MainActivity extends AppCompatActivity {
 
     private EditText editMessage;
     private ListView messageView;
-    private ArrayList<String> messageList = new ArrayList<>();
-    private ArrayAdapter<String> messageListAdapter;
+    //private ArrayList<String> messageList = new ArrayList<>();
+    //private ArrayAdapter<String> messageListAdapter;
+    private ArrayList<Message> messageList = new ArrayList<>();
+    private MessagesAdapter messageListAdapter;
 
     private String username, chatroom, prefix, lastMessageSentBy;
 
@@ -82,8 +84,9 @@ public class MainActivity extends AppCompatActivity {
         editMessage = (EditText) findViewById(R.id.edit_message);
         messageView = (ListView) findViewById(R.id.message_view);
 
-        messageListAdapter =
-                new ArrayAdapter<>(this, MESSAGE_LAYOUT, messageList);
+//        messageListAdapter =
+//                new ArrayAdapter<>(this, MESSAGE_LAYOUT, messageList);
+        messageListAdapter = new MessagesAdapter(this, messageList);
         messageView.setAdapter(messageListAdapter);
 
         IntentFilter broadcastIntentFilter = new IntentFilter(ChronoSyncService.BCAST_RECEIVED);
@@ -210,8 +213,10 @@ public class MainActivity extends AppCompatActivity {
         addMessageToView(message, username);
     }
 
-    private void addMessageToView(String message, String sentBy) {
-        messageList.add(sentBy + ": " + message);
+    private void addMessageToView(String text, String sentBy) {
+        Message message = new Message(text, sentBy);
+        messageList.add(message);
+        //messageList.add(sentBy + ": " + message);
         messageListAdapter.notifyDataSetChanged();
     }
 

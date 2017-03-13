@@ -31,6 +31,7 @@
         android:layout_height="0dp"
         android:layout_above="@id/edit_message"
         android:transcriptMode="alwaysScroll"
+        android:divider="@null"
         android:layout_alignParentTop="true">
     </ListView>
 </RelativeLayout>
