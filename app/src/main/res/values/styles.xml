@@ -17,4 +17,32 @@
 
     <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
 
+
+    <style name="MessageLinearLayout">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:orientation">vertical</item>
+    </style>
+
+    <style name="MessageTextView">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+    </style>
+
+    <style name="MessageTextView.Sent">
+        <item name="android:gravity">right</item>
+    </style>
+
+    <style name="MessageTextView.Sent.Username">
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="MessageTextView.Received">
+        <item name="android:gravity">left</item>
+    </style>
+
+    <style name="MessageTextView.Received.Username">
+        <item name="android:textStyle">bold</item>
+    </style>
+
 </resources>
