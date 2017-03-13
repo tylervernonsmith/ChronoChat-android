@@ -60,8 +60,6 @@ public class MessagesAdapter extends ArrayAdapter<Message> {
         textView.setText(message.getText());
         if (usernameView != null) usernameView.setText(message.getUsername());
 
-        Log.d(TAG, "returning view");
-
         return view;
     }
 

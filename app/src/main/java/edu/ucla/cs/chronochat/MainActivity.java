@@ -42,12 +42,10 @@ public class MainActivity extends AppCompatActivity {
 
     private EditText editMessage;
     private ListView messageView;
-    //private ArrayList<String> messageList = new ArrayList<>();
-    //private ArrayAdapter<String> messageListAdapter;
     private ArrayList<Message> messageList = new ArrayList<>();
     private MessagesAdapter messageListAdapter;
 
-    private String username, chatroom, prefix, lastMessageSentBy;
+    private String username, chatroom, prefix;
 
     private boolean activityVisible = false;
 
@@ -84,8 +82,6 @@ public class MainActivity extends AppCompatActivity {
         editMessage = (EditText) findViewById(R.id.edit_message);
         messageView = (ListView) findViewById(R.id.message_view);
 
-//        messageListAdapter =
-//                new ArrayAdapter<>(this, MESSAGE_LAYOUT, messageList);
         messageListAdapter = new MessagesAdapter(this, messageList);
         messageView.setAdapter(messageListAdapter);
 
@@ -114,7 +110,6 @@ public class MainActivity extends AppCompatActivity {
         if (savedInstanceState == null) {
             messageList.clear();
             messageListAdapter.notifyDataSetChanged();
-            lastMessageSentBy = null;
             startActivityForResult(new Intent(this, LoginActivity.class), 0);
         } else {
             setUsername(savedInstanceState.getString(SAVED_USERNAME));
@@ -183,7 +178,6 @@ public class MainActivity extends AppCompatActivity {
         if (message.equals("")) return;
         messageText.clear();
         addSentMessageToView(message);
-        lastMessageSentBy = username;
 
         Intent intent = getChronoChatServiceIntent(ChronoChatService.ACTION_SEND);
         intent.putExtra(ChronoChatService.EXTRA_MESSAGE, message);
@@ -206,8 +200,6 @@ public class MainActivity extends AppCompatActivity {
         String receivedFrom = dataName.get(USERNAME_COMPONENT_INDEX).toEscapedString();
         Log.d(TAG, "received message \"" + message + "\"" + " from " + receivedFrom);
         showNotification(message, receivedFrom);
-        lastMessageSentBy = receivedFrom;
-        addReceivedMessageToView(message, receivedFrom);
         addReceivedMessageToView(message, receivedFrom);
     }
 
@@ -222,7 +214,6 @@ public class MainActivity extends AppCompatActivity {
     private void addMessageToView(String text, String sentBy) {
         Message message = new Message(text, sentBy);
         messageList.add(message);
-        //messageList.add(sentBy + ": " + message);
         messageListAdapter.notifyDataSetChanged();
     }
 
