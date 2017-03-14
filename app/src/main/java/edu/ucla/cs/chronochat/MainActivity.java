@@ -36,9 +36,8 @@ public class MainActivity extends AppCompatActivity {
                                 SAVED_PREFIX = TAG + ".prefix";
 
     // index of username component in data names
-    private static final int USERNAME_COMPONENT_INDEX = -5,
-                             NOTIFICATION_ID = 0,
-                             MESSAGE_LAYOUT = android.R.layout.simple_list_item_1;
+    private static final int USERNAME_COMPONENT_INDEX = -3,
+                             NOTIFICATION_ID = 0;
 
     private EditText editMessage;
     private ListView messageView;

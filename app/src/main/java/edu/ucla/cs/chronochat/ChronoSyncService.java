@@ -34,9 +34,7 @@ import java.util.List;
 
 public abstract class ChronoSyncService extends Service {
 
-    private static final String FACE_URI = "localhost",
-                                TAG = "ChronoSyncService",
-                                BROADCAST_BASE_PREFIX = "/ndn/broadcast";
+    private static final String TAG = "ChronoSyncService";
     private static final double SYNC_LIFETIME = 5000.0; // FIXME?
 
     /* Intent constants */
@@ -49,14 +47,13 @@ public abstract class ChronoSyncService extends Service {
             EXTRA_DATA_NAME = INTENT_PREFIX + "EXTRA_DATA_NAME",
             EXTRA_ERROR_CODE = INTENT_PREFIX + "EXTRA_ERROR_CODE";
     protected static final String
-            EXTRA_USER_PREFIX_COMPONENT = INTENT_PREFIX + "EXTRA_USER_PREFIX_COMPONENT",
-            EXTRA_GROUP_PREFIX_COMPONENT = INTENT_PREFIX + "EXTRA_GROUP_PREFIX_COMPONENT";
+            EXTRA_DATA_PREFIX = INTENT_PREFIX + "EXTRA_DATA_PREFIX",
+            EXTRA_BROADCAST_PREFIX = INTENT_PREFIX + "EXTRA_BROADCAST_PREFIX";
 
     public enum ErrorCode { NFD_PROBLEM, OTHER_EXCEPTION }
 
     private ErrorCode raisedErrorCode = null;
 
-    private String userPrefixComponent, groupPrefixComponent;
     private Face face;
     private Name dataPrefix, broadcastPrefix;
 
@@ -110,11 +107,11 @@ public abstract class ChronoSyncService extends Service {
         raiseError(logMessage, code, null);
     }
 
-    private void initializeService() {
+    private void initializeService(String dataPrefixStr, String broadcastPrefixStr) {
         Log.d(TAG, "initializing service...");
-        face = new Face(FACE_URI);
-        dataPrefix = new Name(userPrefixComponent + groupPrefixComponent);
-        broadcastPrefix = new Name(BROADCAST_BASE_PREFIX + groupPrefixComponent);
+        face = new Face(getString(R.string.face_uri));
+        dataPrefix = new Name(dataPrefixStr);
+        broadcastPrefix = new Name(broadcastPrefixStr);
         nextSeqNumToRequest = new HashMap<>();
         sentData = new ArrayList<>();
         session = System.currentTimeMillis();
@@ -268,19 +265,16 @@ public abstract class ChronoSyncService extends Service {
             String action = intent.getAction();
             Log.d(TAG, "received intent " + action);
 
-            String userPrefixComponentFromIntent = intent.getStringExtra(EXTRA_USER_PREFIX_COMPONENT),
-                    groupPrefixComponentFromIntent = intent.getStringExtra(EXTRA_GROUP_PREFIX_COMPONENT);
+            String dataPrefixFromIntent = intent.getStringExtra(EXTRA_DATA_PREFIX),
+                    broadcastPrefixFomIntent = intent.getStringExtra(EXTRA_BROADCAST_PREFIX);
 
-            if (userPrefixComponent == null
-                    || groupPrefixComponent == null
-                    || !userPrefixComponent.equals(userPrefixComponentFromIntent)
-                    || !groupPrefixComponent.equals(groupPrefixComponentFromIntent)) {
+            if (dataPrefix == null || broadcastPrefix == null
+                    || !dataPrefix.toString().equals(dataPrefixFromIntent)
+                    || !broadcastPrefix.toString().equals(broadcastPrefixFomIntent)) {
 
-                Log.d(TAG, "new user/group prefix detected...");
-                userPrefixComponent = userPrefixComponentFromIntent;
-                groupPrefixComponent = groupPrefixComponentFromIntent;
+                Log.d(TAG, "new data/broadcast prefix detected...");
                 stopNetworkThreadAndBlockUntilDone();
-                initializeService();
+                initializeService(dataPrefixFromIntent, broadcastPrefixFomIntent);
             }
             if (ACTION_SEND.equals(action)) {
                 String message = intent.getStringExtra(EXTRA_MESSAGE);

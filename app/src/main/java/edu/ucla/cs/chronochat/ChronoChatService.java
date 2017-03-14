@@ -9,8 +9,7 @@ public class ChronoChatService extends ChronoSyncService {
 
     public static final String EXTRA_USERNAME = INTENT_PREFIX + "EXTRA_USERNAME",
                                EXTRA_CHATROOM = INTENT_PREFIX + "EXTRA_CHATROOM",
-                               EXTRA_PREFIX = INTENT_PREFIX + "EXTRA_PREFIX",
-                               APP_NAME = "chronochat-android";
+                               EXTRA_PREFIX = INTENT_PREFIX + "EXTRA_PREFIX";
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -19,15 +18,18 @@ public class ChronoChatService extends ChronoSyncService {
             final String username = intent.getStringExtra(EXTRA_USERNAME),
                     chatroom = intent.getStringExtra(EXTRA_CHATROOM),
                     prefix = intent.getStringExtra(EXTRA_PREFIX),
-                    userPrefixComponent = prefix + "/" + username,
-                    groupPrefixComponent = "/" + APP_NAME + "/" + chatroom;
+                    separator = getString(R.string.uri_separator),
+                    dataPrefix = prefix + separator + chatroom + separator + username,
+                    broadcastPrefix = getString(R.string.broadcast_base_prefix) + separator +
+                            getString(R.string.app_name_prefix_component) + separator + chatroom;
 
-            intent.putExtra(EXTRA_USER_PREFIX_COMPONENT, userPrefixComponent);
-            intent.putExtra(EXTRA_GROUP_PREFIX_COMPONENT, groupPrefixComponent);
+            intent.putExtra(EXTRA_DATA_PREFIX, dataPrefix);
+            intent.putExtra(EXTRA_BROADCAST_PREFIX, broadcastPrefix);
         }
 
         return super.onStartCommand(intent, flags, startId);
     }
+
 
 
 }
