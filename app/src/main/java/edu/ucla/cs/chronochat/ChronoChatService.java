@@ -1,6 +1,12 @@
 package edu.ucla.cs.chronochat;
 
 import android.content.Intent;
+import android.support.v4.content.LocalBroadcastManager;
+import android.util.Log;
+
+import net.named_data.jndn.Data;
+import net.named_data.jndn.Interest;
+import net.named_data.jndn.util.Blob;
 
 
 public class ChronoChatService extends ChronoSyncService {
@@ -9,7 +15,8 @@ public class ChronoChatService extends ChronoSyncService {
 
     public static final String EXTRA_USERNAME = INTENT_PREFIX + "EXTRA_USERNAME",
                                EXTRA_CHATROOM = INTENT_PREFIX + "EXTRA_CHATROOM",
-                               EXTRA_PREFIX = INTENT_PREFIX + "EXTRA_PREFIX";
+                               EXTRA_PREFIX = INTENT_PREFIX + "EXTRA_PREFIX",
+                               BCAST_RECEIVED_MSG = INTENT_PREFIX + "BCAST_RECEIVED_MSG";
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -30,6 +37,15 @@ public class ChronoChatService extends ChronoSyncService {
         return super.onStartCommand(intent, flags, startId);
     }
 
-
+    @Override
+    public void onReceivedSyncData(Interest interest, Data data) {
+        Blob blob = data.getContent();
+        String receivedStr = blob.toString(), dataName = interest.getName().toString();
+        Log.d(TAG, "received sync data for " + dataName + ":\n" + receivedStr);
+        Intent bcast = new Intent(BCAST_RECEIVED_MSG);
+        bcast.putExtra(EXTRA_MESSAGE, receivedStr)
+             .putExtra(EXTRA_DATA_NAME, dataName);
+        LocalBroadcastManager.getInstance(this).sendBroadcast(bcast);
+    }
 
 }

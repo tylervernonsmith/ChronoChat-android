@@ -17,7 +17,6 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Toast;
@@ -54,7 +53,7 @@ public class MainActivity extends AppCompatActivity {
         public void onReceive(Context context, Intent intent) {
             Log.d(TAG, "broadcast received");
             switch (intent.getAction()) {
-                case ChronoSyncService.BCAST_RECEIVED:
+                case ChronoChatService.BCAST_RECEIVED_MSG:
                     handleReceivedMessage(intent);
                     break;
                 case ChronoSyncService.BCAST_ERROR:
@@ -84,7 +83,7 @@ public class MainActivity extends AppCompatActivity {
         messageListAdapter = new MessagesAdapter(this, messageList);
         messageView.setAdapter(messageListAdapter);
 
-        IntentFilter broadcastIntentFilter = new IntentFilter(ChronoSyncService.BCAST_RECEIVED);
+        IntentFilter broadcastIntentFilter = new IntentFilter(ChronoChatService.BCAST_RECEIVED_MSG);
         registerBroadcastReceiver(broadcastIntentFilter);
         broadcastIntentFilter = new IntentFilter(ChronoSyncService.BCAST_ERROR);
         registerBroadcastReceiver(broadcastIntentFilter);
