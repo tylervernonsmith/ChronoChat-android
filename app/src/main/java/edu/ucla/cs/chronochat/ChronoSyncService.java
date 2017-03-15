@@ -336,8 +336,8 @@ public abstract class ChronoSyncService extends Service {
             int requestedSeqNum = Integer.parseInt(seqNumComponent.toEscapedString());
             long requestedSession = Long.parseLong(sessionComponent.toEscapedString());
 
-            String requestedData = sentData.get(requestedSeqNum);
-            if (requestedData != null && session == requestedSession) {
+            if (session == requestedSession && requestedSeqNum < nextDataSeqNum()) {
+                String requestedData = sentData.get(requestedSeqNum);
                 Log.d(TAG, "responding to data interest");
                 Data response = new Data(interestName);
                 Blob content = new Blob(requestedData.getBytes());
