@@ -7,6 +7,8 @@
 
 package edu.ucla.cs.chronochat;
 
+option optimize_for = LITE_RUNTIME;
+
 message ChatMessage {
   required string to = 1;
   required string from = 2;
