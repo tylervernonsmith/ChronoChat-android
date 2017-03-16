@@ -106,8 +106,9 @@ public abstract class ChronoSyncService extends Service {
         raiseError(logMessage, code, null);
     }
 
-    private void initializeService(String dataPrefixStr, String broadcastPrefixStr) {
-        Log.d(TAG, "initializing service...");
+    protected void initializeService(String dataPrefixStr, String broadcastPrefixStr) {
+        Log.d(TAG, "(re)initializing service...");
+        stopNetworkThreadAndBlockUntilDone();
         face = new Face(getString(R.string.face_uri));
         dataPrefix = new Name(dataPrefixStr);
         broadcastPrefix = new Name(broadcastPrefixStr);
@@ -258,33 +259,6 @@ public abstract class ChronoSyncService extends Service {
     private long nextSyncSeqNum() { return sync.getSequenceNo(); }
 
     @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-
-        if (intent != null) {
-            String action = intent.getAction();
-            Log.d(TAG, "received intent " + action);
-
-            String dataPrefixFromIntent = intent.getStringExtra(EXTRA_DATA_PREFIX),
-                    broadcastPrefixFomIntent = intent.getStringExtra(EXTRA_BROADCAST_PREFIX);
-
-            if (dataPrefix == null || broadcastPrefix == null
-                    || !dataPrefix.toString().equals(dataPrefixFromIntent)
-                    || !broadcastPrefix.toString().equals(broadcastPrefixFomIntent)) {
-
-                Log.d(TAG, "new data/broadcast prefix detected...");
-                stopNetworkThreadAndBlockUntilDone();
-                initializeService(dataPrefixFromIntent, broadcastPrefixFomIntent);
-            }
-            if (ACTION_SEND.equals(action)) {
-                byte[] message = intent.getByteArrayExtra(EXTRA_MESSAGE);
-                send(message);
-            }
-        }
-
-        return START_STICKY;
-    }
-
-    @Override
     public void onDestroy() {
         // attempt to clean up after ourselves
         Log.d(TAG, "onDestroy() cleaning up...");
@@ -306,7 +280,7 @@ public abstract class ChronoSyncService extends Service {
         Log.d(TAG, "service cleanup/reset complete");
     }
 
-    private void send(byte[] message) {
+    protected void send(byte[] message) {
         sentData.add(message);
     }
 

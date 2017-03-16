@@ -22,29 +22,47 @@ public class ChronoChatService extends ChronoSyncService {
                                EXTRA_PREFIX = INTENT_PREFIX + "EXTRA_PREFIX",
                                BCAST_RECEIVED_MSG = INTENT_PREFIX + "BCAST_RECEIVED_MSG";
 
+    private String activeUsername, activeChatroom, activePrefix;
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
 
         if (intent != null) {
+            String action = intent.getAction();
+            Log.d(TAG, "received intent " + action);
             final String username = intent.getStringExtra(EXTRA_USERNAME),
                     chatroom = intent.getStringExtra(EXTRA_CHATROOM),
-                    prefix = intent.getStringExtra(EXTRA_PREFIX),
-                    message = intent.getStringExtra(EXTRA_MESSAGE),
-                    separator = getString(R.string.uri_separator),
-                    dataPrefix = prefix + separator + chatroom + separator + username,
-                    broadcastPrefix = getString(R.string.broadcast_base_prefix) + separator +
-                            getString(R.string.app_name_prefix_component) + separator + chatroom;
+                    prefix = intent.getStringExtra(EXTRA_PREFIX);
 
-            intent.putExtra(EXTRA_DATA_PREFIX, dataPrefix);
-            intent.putExtra(EXTRA_BROADCAST_PREFIX, broadcastPrefix);
-            if (message != null) {
-                byte[] encodedMessage = encodeMessage(username, chatroom, ChatMessageType.CHAT,
-                        message);
-                intent.putExtra(EXTRA_MESSAGE, encodedMessage);
+            if (activeUsername == null || activeChatroom == null || activePrefix == null ||
+                    !activeUsername.equals(username) || !activeChatroom.equals(chatroom) ||
+                    !activePrefix.equals(prefix)) {
+
+                activeUsername = username;
+                activeChatroom = chatroom;
+                activePrefix = prefix;
+
+                String separator = getString(R.string.uri_separator),
+                       dataPrefix = prefix + separator + chatroom + separator + username,
+                       broadcastPrefix = getString(R.string.broadcast_base_prefix) + separator +
+                               getString(R.string.app_name_prefix_component) + separator +
+                               chatroom;
+
+                initializeService(dataPrefix, broadcastPrefix);
             }
+
+            if (ACTION_SEND.equals(action)) {
+                String message = intent.getStringExtra(EXTRA_MESSAGE);
+                if (message != null) {
+                    byte[] encodedMessage = encodeMessage(username, chatroom, ChatMessageType.CHAT,
+                            message);
+                    send(encodedMessage);
+                }
+            }
+
         }
 
-        return super.onStartCommand(intent, flags, startId);
+        return START_STICKY;
     }
 
     @Override
