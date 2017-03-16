@@ -61,7 +61,7 @@ public abstract class ChronoSyncService extends Service {
     private boolean syncInitialized = false;
     private KeyChain keyChain;
     private HashMap<String, Long> nextSeqNumToRequest;
-    private ArrayList<String> sentData;
+    private ArrayList<byte[]> sentData;
     private long registeredDataPrefixId;
     private long session;
 
@@ -276,7 +276,7 @@ public abstract class ChronoSyncService extends Service {
                 initializeService(dataPrefixFromIntent, broadcastPrefixFomIntent);
             }
             if (ACTION_SEND.equals(action)) {
-                String message = intent.getStringExtra(EXTRA_MESSAGE);
+                byte[] message = intent.getByteArrayExtra(EXTRA_MESSAGE);
                 send(message);
             }
         }
@@ -306,9 +306,8 @@ public abstract class ChronoSyncService extends Service {
         Log.d(TAG, "service cleanup/reset complete");
     }
 
-    private void send(String message) {
+    private void send(byte[] message) {
         sentData.add(message);
-        Log.d(TAG, "sending \"" + message + "\"");
     }
 
     private void broadcastIntentIfErrorRaised() {
@@ -336,10 +335,10 @@ public abstract class ChronoSyncService extends Service {
             long requestedSession = Long.parseLong(sessionComponent.toEscapedString());
 
             if (session == requestedSession && requestedSeqNum < nextDataSeqNum()) {
-                String requestedData = sentData.get(requestedSeqNum);
+                byte[] requestedData = sentData.get(requestedSeqNum);
                 Log.d(TAG, "responding to data interest");
                 Data response = new Data(interestName);
-                Blob content = new Blob(requestedData.getBytes());
+                Blob content = new Blob(requestedData);
                 response.setContent(content);
                 try {
                     face.putData(response);
