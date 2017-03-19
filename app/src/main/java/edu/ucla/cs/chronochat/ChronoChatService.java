@@ -15,7 +15,8 @@ public class ChronoChatService extends ChronoSyncService {
     public static final String EXTRA_USERNAME = INTENT_PREFIX + "EXTRA_USERNAME",
                                EXTRA_CHATROOM = INTENT_PREFIX + "EXTRA_CHATROOM",
                                EXTRA_PREFIX = INTENT_PREFIX + "EXTRA_PREFIX",
-                               BCAST_RECEIVED_MSG = INTENT_PREFIX + "BCAST_RECEIVED_MSG";
+                               BCAST_RECEIVED_MSG = INTENT_PREFIX + "BCAST_RECEIVED_MSG",
+                               ACTION_SEND = INTENT_PREFIX + "ACTION_SEND";
 
     private String activeUsername, activeChatroom, activePrefix;
 

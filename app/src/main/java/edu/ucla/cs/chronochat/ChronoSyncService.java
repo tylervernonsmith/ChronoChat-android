@@ -40,16 +40,12 @@ public abstract class ChronoSyncService extends Service {
     /* Intent constants */
     public static final String
             INTENT_PREFIX = "edu.ucla.cs.ChronoChat." + TAG + ".",
-            ACTION_SEND = INTENT_PREFIX + "ACTION_SEND",
             BCAST_ERROR = INTENT_PREFIX + "BCAST_ERROR",
             EXTRA_MESSAGE = INTENT_PREFIX + "EXTRA_MESSAGE",
             EXTRA_DATA_NAME = INTENT_PREFIX + "EXTRA_DATA_NAME",
             EXTRA_ERROR_CODE = INTENT_PREFIX + "EXTRA_ERROR_CODE";
-    protected static final String
-            EXTRA_DATA_PREFIX = INTENT_PREFIX + "EXTRA_DATA_PREFIX",
-            EXTRA_BROADCAST_PREFIX = INTENT_PREFIX + "EXTRA_BROADCAST_PREFIX";
 
-    public enum ErrorCode { NFD_PROBLEM, OTHER_EXCEPTION }
+    enum ErrorCode { NFD_PROBLEM, OTHER_EXCEPTION }
 
     private ErrorCode raisedErrorCode = null;
 
@@ -62,7 +58,6 @@ public abstract class ChronoSyncService extends Service {
     private KeyChain keyChain;
     private HashMap<String, Long> nextSeqNumToRequest;
     private ArrayList<byte[]> sentData;
-    private long registeredDataPrefixId;
     private long session;
 
     private final Thread networkThread = new Thread(new Runnable() {
@@ -174,7 +169,7 @@ public abstract class ChronoSyncService extends Service {
     private void registerDataPrefix () {
         Log.d(TAG, "registering data prefix...");
         try {
-            registeredDataPrefixId = face.registerPrefix(dataPrefix, OnDataInterest,
+            face.registerPrefix(dataPrefix, OnDataInterest,
                     OnDataPrefixRegisterFailed, OnDataPrefixRegisterSuccess);
         } catch (IOException | SecurityException e) {
             Log.d(TAG, "exception registering data prefix"); // will also be handled in callback
