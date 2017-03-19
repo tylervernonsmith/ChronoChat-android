@@ -73,7 +73,26 @@ public class MessagesAdapter extends ArrayAdapter<ChatMessage> {
         TextView usernameView = viewHolder.usernameView,
                  messageTextView = viewHolder.messageTextView;
 
-        messageTextView.setText(message.getData());
+        switch (message.getType().getNumber()) {
+            case ChatMessageType.CHAT_VALUE:
+                messageTextView.setText(message.getData());
+                break;
+            case ChatMessageType.JOIN_VALUE:
+                messageTextView.setText("[joined the chat]");
+                break;
+            case ChatMessageType.LEAVE_VALUE:
+                messageTextView.setText("[left the chat]");
+                break;
+            case ChatMessageType.HELLO_VALUE:
+                messageTextView.setText("[HELLO]");
+                break;
+            case ChatMessageType.OTHER_VALUE:
+                messageTextView.setText("[OTHER]");
+                break;
+            default:
+                messageTextView.setText("[unhandled message type]");
+        }
+
         if (usernameView != null) usernameView.setText(message.getFrom());
 
         return view;
