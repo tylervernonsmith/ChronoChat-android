@@ -8,13 +8,19 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.TextView;
 
+import com.google.protobuf.InvalidProtocolBufferException;
+
 import java.util.ArrayList;
+
+import edu.ucla.cs.chronochat.ChatbufProto.ChatMessage;
+import edu.ucla.cs.chronochat.ChatbufProto.ChatMessage.ChatMessageType;
+
 
 /**
  * Created by tvsmith on 3/12/17.
  */
 
-public class MessagesAdapter extends ArrayAdapter<Message> {
+public class MessagesAdapter extends ArrayAdapter<ChatMessage> {
 
     private String loggedInUsername;
     private static final String TAG = "MessagesAdapter";
@@ -28,7 +34,7 @@ public class MessagesAdapter extends ArrayAdapter<Message> {
         TextView usernameView, messageTextView;
     }
 
-    public MessagesAdapter(Context context, ArrayList<Message> messages) {
+    public MessagesAdapter(Context context, ArrayList<ChatMessage> messages) {
         super(context, 0, messages);
     }
 
@@ -39,11 +45,11 @@ public class MessagesAdapter extends ArrayAdapter<Message> {
 
     @Override
     public int getItemViewType(int position) {
-        Message thisMessage = getItem(position);
-        boolean sent = thisMessage.getUsername().equals(loggedInUsername);
+        ChatMessage thisMessage = getItem(position);
+        boolean sent = thisMessage.getFrom().equals(loggedInUsername);
         if (position > 0) {
-            Message previousMessage = getItem(position - 1);
-            if (thisMessage.getUsername().equals(previousMessage.getUsername()))
+            ChatMessage previousMessage = getItem(position - 1);
+            if (thisMessage.getFrom().equals(previousMessage.getFrom()))
                 return (sent ? TYPE_SENT_MESSAGE_ONLY : TYPE_RECEIVED_MESSAGE_ONLY);
         }
         return (sent ? TYPE_SENT_MESSAGE_WITH_USERNAME : TYPE_RECEIVED_MESSAGE_WITH_USERNAME);
@@ -51,7 +57,7 @@ public class MessagesAdapter extends ArrayAdapter<Message> {
 
     @Override
     public View getView(int position, View view, ViewGroup parent) {
-        Message message = getItem(position);
+        ChatMessage message = getItem(position);
         ViewHolder viewHolder;
 
         if (view == null) {
@@ -67,8 +73,8 @@ public class MessagesAdapter extends ArrayAdapter<Message> {
         TextView usernameView = viewHolder.usernameView,
                  messageTextView = viewHolder.messageTextView;
 
-        messageTextView.setText(message.getText());
-        if (usernameView != null) usernameView.setText(message.getUsername());
+        messageTextView.setText(message.getData());
+        if (usernameView != null) usernameView.setText(message.getFrom());
 
         return view;
     }
@@ -94,4 +100,8 @@ public class MessagesAdapter extends ArrayAdapter<Message> {
 
     public void setLoggedInUsername(String username) { loggedInUsername = username; }
 
+    public void addMessageToView(ChatMessage message) {
+        add(message);
+        notifyDataSetChanged();
+    }
 }

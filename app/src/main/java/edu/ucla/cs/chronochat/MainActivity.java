@@ -21,11 +21,14 @@ import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Toast;
 
-import net.named_data.jndn.Name;
+import com.google.protobuf.InvalidProtocolBufferException;
 
 import java.util.ArrayList;
 
 import edu.ucla.cs.chronochat.ChronoSyncService.ErrorCode;
+import edu.ucla.cs.chronochat.ChatbufProto.ChatMessage;
+import edu.ucla.cs.chronochat.ChatbufProto.ChatMessage.ChatMessageType;
+
 
 public class MainActivity extends AppCompatActivity {
 
@@ -35,12 +38,10 @@ public class MainActivity extends AppCompatActivity {
                                 SAVED_PREFIX = TAG + ".prefix";
 
     // index of username component in data names
-    private static final int USERNAME_COMPONENT_INDEX = -3,
-                             NOTIFICATION_ID = 0;
+    private static final int NOTIFICATION_ID = 0;
 
     private EditText editMessage;
-    private ListView messageView;
-    private ArrayList<Message> messageList = new ArrayList<>();
+    private ArrayList<ChatMessage> messageList = new ArrayList<>();
     private MessagesAdapter messageListAdapter;
 
     private String username, chatroom, prefix;
@@ -78,7 +79,7 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG, "onCreate");
 
         editMessage = (EditText) findViewById(R.id.edit_message);
-        messageView = (ListView) findViewById(R.id.message_view);
+        ListView messageView = (ListView) findViewById(R.id.message_view);
 
         messageListAdapter = new MessagesAdapter(this, messageList);
         messageView.setAdapter(messageListAdapter);
@@ -171,14 +172,16 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void sendMessage(View view) {
-        Editable messageText = editMessage.getText();
-        String message = messageText.toString();
-        if (message.equals("")) return;
-        messageText.clear();
-        addSentMessageToView(message);
+        Editable messageField = editMessage.getText();
+        String text = messageField.toString();
+        if (text.equals("")) return;
+        messageField.clear();
+
+        ChatMessage message = encodeMessage(username, chatroom, ChatMessageType.CHAT, text);
+        messageListAdapter.addMessageToView(message);
 
         Intent intent = getChronoChatServiceIntent(ChronoChatService.ACTION_SEND);
-        intent.putExtra(ChronoChatService.EXTRA_MESSAGE, message);
+        intent.putExtra(ChronoChatService.EXTRA_MESSAGE, message.toByteArray());
         startService(intent);
     }
 
@@ -192,28 +195,20 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void handleReceivedMessage(Intent intent) {
-        String message = intent.getStringExtra(ChronoChatService.EXTRA_MESSAGE);
-        String dataNameStr = intent.getStringExtra(ChronoChatService.EXTRA_DATA_NAME);
-        Name dataName = new Name(dataNameStr);
-        String receivedFrom = dataName.get(USERNAME_COMPONENT_INDEX).toEscapedString();
-        Log.d(TAG, "received message \"" + message + "\"" + " from " + receivedFrom);
-        showNotification(message, receivedFrom);
-        addReceivedMessageToView(message, receivedFrom);
+        byte[] encodedMessage = intent.getByteArrayExtra(ChronoChatService.EXTRA_MESSAGE);
+        ChatMessage message;
+        try {
+            message = ChatMessage.parseFrom(encodedMessage);
+        } catch (InvalidProtocolBufferException e) {
+            message = encodeMessage("[unknown user]", chatroom, ChatMessageType.CHAT,
+                    "[error parsing message]");
+        }
+        String text = message.getData(), receivedFrom = message.getFrom();
+        Log.d(TAG, "received message \"" + message.getData() + "\"" + " from " + message.getFrom());
+        showNotification(text, receivedFrom);
+        messageListAdapter.addMessageToView(message);
     }
 
-    private void addReceivedMessageToView(String message, String receivedFrom) {
-        addMessageToView(message, receivedFrom);
-    }
-
-    private void addSentMessageToView(String message) {
-        addMessageToView(message, username);
-    }
-
-    private void addMessageToView(String text, String sentBy) {
-        Message message = new Message(text, sentBy);
-        messageList.add(message);
-        messageListAdapter.notifyDataSetChanged();
-    }
 
     private void showNotification(String message, String sentBy) {
 
@@ -261,5 +256,21 @@ public class MainActivity extends AppCompatActivity {
         getLoginInfo(null);
     }
 
+    private ChatMessage encodeMessage(String username, String chatroom, ChatMessageType type,
+                                      String text) {
+        int timestamp = (int) (System.currentTimeMillis() / 1000);
+        return encodeMessage(username, chatroom, type, text, timestamp);
+    }
+
+    private ChatMessage encodeMessage(String username, String chatroom, ChatMessageType type,
+                                      String message, int timestamp) {
+        return  ChatMessage.newBuilder()
+                .setFrom(username)
+                .setTo(chatroom)
+                .setData(message)
+                .setType(type)
+                .setTimestamp(timestamp)
+                .build();
+    }
 }
 

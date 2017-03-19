@@ -4,13 +4,8 @@ import android.content.Intent;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
-import com.google.protobuf.InvalidProtocolBufferException;
-
 import net.named_data.jndn.Data;
 import net.named_data.jndn.Interest;
-
-import edu.ucla.cs.chronochat.ChatbufProto.ChatMessage;
-import edu.ucla.cs.chronochat.ChatbufProto.ChatMessage.ChatMessageType;
 
 
 public class ChronoChatService extends ChronoSyncService {
@@ -52,11 +47,9 @@ public class ChronoChatService extends ChronoSyncService {
             }
 
             if (ACTION_SEND.equals(action)) {
-                String message = intent.getStringExtra(EXTRA_MESSAGE);
+                byte[] message = intent.getByteArrayExtra(EXTRA_MESSAGE);
                 if (message != null) {
-                    byte[] encodedMessage = encodeMessage(username, chatroom, ChatMessageType.CHAT,
-                            message);
-                    send(encodedMessage);
+                    send(message);
                 }
             }
 
@@ -68,44 +61,11 @@ public class ChronoChatService extends ChronoSyncService {
     @Override
     public void onReceivedSyncData(Interest interest, Data data) {
         String dataName = interest.getName().toString();
-        Message decodedMessage = decodeMessage(data.getContent().getImmutableArray());
-        String receivedStr = decodedMessage.getText();
-        Log.d(TAG, "received sync data for " + dataName + ":\n" + receivedStr);
+        Log.d(TAG, "received sync data for " + dataName);
+        byte[] receivedData = data.getContent().getImmutableArray();
         Intent bcast = new Intent(BCAST_RECEIVED_MSG);
-        bcast.putExtra(EXTRA_MESSAGE, receivedStr)
+        bcast.putExtra(EXTRA_MESSAGE, receivedData)
              .putExtra(EXTRA_DATA_NAME, dataName);
         LocalBroadcastManager.getInstance(this).sendBroadcast(bcast);
     }
-
-    private byte[] encodeMessage(String username, String chatroom, ChatMessageType type,
-                                 String message, int timestamp) {
-        ChatMessage chatMessage =
-                ChatMessage.newBuilder()
-                        .setFrom(username)
-                        .setTo(chatroom)
-                        .setData(message)
-                        .setType(type).setTimestamp(timestamp)
-                        .build();
-
-        return chatMessage.toByteArray();
-    }
-
-    private byte[] encodeMessage(String username, String chatroom, ChatMessageType type,
-                                 String message) {
-        int timestamp = (int) (System.currentTimeMillis() / 1000);
-        return encodeMessage(username, chatroom, type, message, timestamp);
-    }
-
-    private Message decodeMessage(byte[] encodedMessage) {
-        String message = "[error parsing received message]", from = "[unknown user]";
-        try {
-            ChatMessage chatMessage = ChatMessage.parseFrom(encodedMessage);
-            message = chatMessage.getData();
-            from = chatMessage.getFrom();
-        } catch (InvalidProtocolBufferException e) {
-            Log.e(TAG, "error parsing received message", e);
-        }
-        return new Message(message, from);
-    }
-
 }
