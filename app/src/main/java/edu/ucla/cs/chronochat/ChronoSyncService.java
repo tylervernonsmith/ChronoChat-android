@@ -216,7 +216,7 @@ public abstract class ChronoSyncService extends Service {
     private void requestMissingSeqNums(String syncDataId, long availableSeqNum) {
         Long seqNumToRequest = nextSeqNumToRequest.get(syncDataId);
         if (seqNumToRequest == null) seqNumToRequest = 0L;
-        while (availableSeqNum > seqNumToRequest) {
+        while (availableSeqNum >= seqNumToRequest) {
             String missingDataNameStr = syncDataId + "/" + seqNumToRequest;
             Name missingDataName = new Name(missingDataNameStr);
             Log.d(TAG, "requesting missing seqnum " + seqNumToRequest);
@@ -251,7 +251,7 @@ public abstract class ChronoSyncService extends Service {
     }
 
     private int nextDataSeqNum() { return sentData.size(); }
-    private long nextSyncSeqNum() { return sync.getSequenceNo(); }
+    private long nextSyncSeqNum() { return sync.getSequenceNo() + 1; }
 
     @Override
     public void onDestroy() {
