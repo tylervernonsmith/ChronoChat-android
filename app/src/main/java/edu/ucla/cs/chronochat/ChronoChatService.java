@@ -7,6 +7,9 @@ import android.util.Log;
 import net.named_data.jndn.Data;
 import net.named_data.jndn.Interest;
 
+import edu.ucla.cs.chronochat.ChatbufProto.ChatMessage;
+import edu.ucla.cs.chronochat.ChatbufProto.ChatMessage.ChatMessageType;
+
 
 public class ChronoChatService extends ChronoSyncService {
 
@@ -42,7 +45,8 @@ public class ChronoChatService extends ChronoSyncService {
                                getString(R.string.app_name_prefix_component) + separator +
                                chatroom;
 
-                initializeService(dataPrefix, broadcastPrefix);
+                byte[] joinMessage = getJoinMessage();
+                initializeService(dataPrefix, broadcastPrefix, joinMessage);
             }
 
             byte[] message = intent.getByteArrayExtra(EXTRA_MESSAGE);
@@ -63,5 +67,17 @@ public class ChronoChatService extends ChronoSyncService {
         bcast.putExtra(EXTRA_MESSAGE, receivedData)
              .putExtra(EXTRA_DATA_NAME, dataName);
         LocalBroadcastManager.getInstance(this).sendBroadcast(bcast);
+    }
+
+    private byte[] getJoinMessage() {
+        int timestamp = (int) (System.currentTimeMillis() / 1000);
+        byte[] joinMessage = ChatMessage.newBuilder()
+                .setFrom(activeUsername)
+                .setTo(activeChatroom)
+                .setType(ChatMessageType.JOIN)
+                .setTimestamp(timestamp)
+                .build()
+                .toByteArray();
+        return joinMessage;
     }
 }

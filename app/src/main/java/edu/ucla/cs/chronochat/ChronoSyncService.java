@@ -101,7 +101,8 @@ public abstract class ChronoSyncService extends Service {
         raiseError(logMessage, code, null);
     }
 
-    protected void initializeService(String dataPrefixStr, String broadcastPrefixStr) {
+    protected void initializeService(String dataPrefixStr, String broadcastPrefixStr,
+                                     byte[] initialData) {
         Log.d(TAG, "(re)initializing service...");
         stopNetworkThreadAndBlockUntilDone();
         face = new Face(getString(R.string.face_uri));
@@ -110,6 +111,7 @@ public abstract class ChronoSyncService extends Service {
         nextSeqNumToRequest = new HashMap<>();
         sentData = new ArrayList<>();
         session = System.currentTimeMillis();
+        send(initialData);
         startNetworkThread();
         Log.d(TAG, "service initialized");
     }
