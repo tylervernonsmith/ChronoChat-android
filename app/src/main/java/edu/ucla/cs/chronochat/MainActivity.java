@@ -154,6 +154,8 @@ public class MainActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.action_leave:
+                ChatMessage leave = encodeMessage(username, chatroom, ChatMessageType.LEAVE);
+                sendMessage(leave);
                 getLoginInfo(null);
                 return true;
             default:
@@ -178,9 +180,12 @@ public class MainActivity extends AppCompatActivity {
         messageField.clear();
 
         ChatMessage message = encodeMessage(username, chatroom, ChatMessageType.CHAT, text);
-        messageListAdapter.addMessageToView(message);
+        sendMessage(message);
+    }
 
-        Intent intent = getChronoChatServiceIntent(ChronoChatService.ACTION_SEND);
+    private void sendMessage(ChatMessage message) {
+        messageListAdapter.addMessageToView(message);
+        Intent intent = getChronoChatServiceIntent(null);
         intent.putExtra(ChronoChatService.EXTRA_MESSAGE, message.toByteArray());
         startService(intent);
     }
@@ -254,6 +259,10 @@ public class MainActivity extends AppCompatActivity {
         }
         Toast.makeText(getApplicationContext(), toastText, Toast.LENGTH_LONG).show();
         getLoginInfo(null);
+    }
+
+    private ChatMessage encodeMessage(String username, String chatroom, ChatMessageType type) {
+        return encodeMessage(username, chatroom, type, "");
     }
 
     private ChatMessage encodeMessage(String username, String chatroom, ChatMessageType type,
