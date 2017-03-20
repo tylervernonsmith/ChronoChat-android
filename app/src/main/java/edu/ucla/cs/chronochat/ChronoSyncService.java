@@ -324,9 +324,8 @@ public abstract class ChronoSyncService extends Service {
                 @Override
                 public void onReceivedSyncState(List syncStates, boolean isRecovery) {
                     Log.d(TAG, "sync states received");
-                    for (ChronoSync2013.SyncState syncState :
-                            (List<ChronoSync2013.SyncState>) syncStates) {
-                        processSyncState(syncState, isRecovery);
+                    for (Object syncState : syncStates) {
+                        processSyncState((ChronoSync2013.SyncState) syncState, isRecovery);
                     }
                     Log.d(TAG, "finished processing " + syncStates.size() + " sync states");
                 }
