@@ -15,8 +15,7 @@ public class ChronoChatService extends ChronoSyncService {
     public static final String EXTRA_USERNAME = INTENT_PREFIX + "EXTRA_USERNAME",
                                EXTRA_CHATROOM = INTENT_PREFIX + "EXTRA_CHATROOM",
                                EXTRA_PREFIX = INTENT_PREFIX + "EXTRA_PREFIX",
-                               BCAST_RECEIVED_MSG = INTENT_PREFIX + "BCAST_RECEIVED_MSG",
-                               ACTION_SEND = INTENT_PREFIX + "ACTION_SEND";
+                               BCAST_RECEIVED_MSG = INTENT_PREFIX + "BCAST_RECEIVED_MSG";
 
     private String activeUsername, activeChatroom, activePrefix;
 
@@ -24,8 +23,7 @@ public class ChronoChatService extends ChronoSyncService {
     public int onStartCommand(Intent intent, int flags, int startId) {
 
         if (intent != null) {
-            String action = intent.getAction();
-            Log.d(TAG, "received intent " + action);
+            Log.d(TAG, "received intent");
             final String username = intent.getStringExtra(EXTRA_USERNAME),
                     chatroom = intent.getStringExtra(EXTRA_CHATROOM),
                     prefix = intent.getStringExtra(EXTRA_PREFIX);
@@ -47,13 +45,10 @@ public class ChronoChatService extends ChronoSyncService {
                 initializeService(dataPrefix, broadcastPrefix);
             }
 
-            if (ACTION_SEND.equals(action)) {
-                byte[] message = intent.getByteArrayExtra(EXTRA_MESSAGE);
-                if (message != null) {
-                    send(message);
-                }
+            byte[] message = intent.getByteArrayExtra(EXTRA_MESSAGE);
+            if (message != null) {
+                send(message);
             }
-
         }
 
         return START_STICKY;
