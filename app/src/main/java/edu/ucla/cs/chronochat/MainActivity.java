@@ -208,22 +208,26 @@ public class MainActivity extends AppCompatActivity {
             message = encodeMessage("[unknown user]", chatroom, ChatMessageType.CHAT,
                     "[error parsing message]");
         }
-        String text = message.getData(), receivedFrom = message.getFrom();
-        Log.d(TAG, "received message \"" + message.getData() + "\"" + " from " + message.getFrom());
-        showNotification(text, receivedFrom);
+        Log.d(TAG, "received message from " + message.getFrom());
+        showNotification(message);
         messageListAdapter.addMessageToView(message);
     }
 
 
-    private void showNotification(String message, String sentBy) {
+    private void showNotification(ChatMessage message) {
 
         if (activityVisible) return;
+
+        ChatMessageType type = message.getType();
+        if (type != ChatMessageType.CHAT) return;
+
+        String from = message.getFrom(), text = message.getData();
 
         NotificationCompat.Builder builder =
                 (NotificationCompat.Builder) new NotificationCompat.Builder(this)
                         .setSmallIcon(R.drawable.notification_icon)
-                        .setContentTitle(sentBy)
-                        .setContentText(message)
+                        .setContentTitle(from)
+                        .setContentText(text)
                         .setDefaults(Notification.DEFAULT_SOUND|Notification.DEFAULT_LIGHTS);
 
         // FIXME is this done right?
