@@ -7,6 +7,8 @@ import android.util.Log;
 import net.named_data.jndn.Data;
 import net.named_data.jndn.Interest;
 
+import java.util.UUID;
+
 import edu.ucla.cs.chronochat.ChatbufProto.ChatMessage;
 import edu.ucla.cs.chronochat.ChatbufProto.ChatMessage.ChatMessageType;
 
@@ -40,8 +42,9 @@ public class ChronoChatService extends ChronoSyncService {
                 activePrefix = prefix;
 
                 String separator = getString(R.string.uri_separator),
-                       dataPrefix = prefix + separator + chatroom + separator + username,
-                       broadcastPrefix = getString(R.string.broadcast_base_prefix) + separator +
+                        randomString = getRandomStringForDataPrefix(),
+                        dataPrefix = prefix + separator + chatroom + separator + randomString,
+                        broadcastPrefix = getString(R.string.broadcast_base_prefix) + separator +
                                getString(R.string.app_name_prefix_component) + separator +
                                chatroom;
 
@@ -79,5 +82,9 @@ public class ChronoChatService extends ChronoSyncService {
                 .build()
                 .toByteArray();
         return joinMessage;
+    }
+
+    private String getRandomStringForDataPrefix() {
+        return UUID.randomUUID().toString();
     }
 }
