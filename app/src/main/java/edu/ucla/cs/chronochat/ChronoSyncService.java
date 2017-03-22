@@ -58,7 +58,7 @@ public abstract class ChronoSyncService extends Service {
     private KeyChain keyChain;
     private HashMap<String, Long> nextSeqNumToRequest;
     private ArrayList<byte[]> sentData;
-    private long session;
+    private int session;
 
     private final Thread networkThread = new Thread(new Runnable() {
         @Override
@@ -110,7 +110,7 @@ public abstract class ChronoSyncService extends Service {
         broadcastPrefix = new Name(broadcastPrefixStr);
         nextSeqNumToRequest = new HashMap<>();
         sentData = new ArrayList<>();
-        session = System.currentTimeMillis();
+        session = (int) (System.currentTimeMillis() / 1000);
         send(initialData);
         startNetworkThread();
         Log.d(TAG, "service initialized");
