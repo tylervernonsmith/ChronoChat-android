@@ -49,7 +49,7 @@ public abstract class ChronoSyncService extends Service {
 
     private ErrorCode raisedErrorCode = null;
 
-    private Face face;
+    protected Face face;
     private Name dataPrefix, broadcastPrefix;
 
     private ChronoSync2013 sync;
@@ -90,14 +90,14 @@ public abstract class ChronoSyncService extends Service {
         }
     });
 
-    private void raiseError(String logMessage, ErrorCode code, Throwable exception) {
+    protected void raiseError(String logMessage, ErrorCode code, Throwable exception) {
         if (exception == null) Log.e(TAG, logMessage);
         else Log.e(TAG, logMessage, exception);
         raisedErrorCode = code;
         stopNetworkThread();
     }
 
-    private void raiseError(String logMessage, ErrorCode code) {
+    protected void raiseError(String logMessage, ErrorCode code) {
         raiseError(logMessage, code, null);
     }
 
