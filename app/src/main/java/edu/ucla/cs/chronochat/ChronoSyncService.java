@@ -35,7 +35,7 @@ import java.util.List;
 public abstract class ChronoSyncService extends Service {
 
     private static final String TAG = "ChronoSyncService";
-    private static final double SYNC_LIFETIME = 5000.0; // FIXME?
+    private static final double SYNC_LIFETIME = 15000.0; // FIXME?
 
     /* Intent constants */
     public static final String
