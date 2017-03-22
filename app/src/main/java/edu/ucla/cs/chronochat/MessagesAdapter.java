@@ -83,9 +83,6 @@ public class MessagesAdapter extends ArrayAdapter<ChatMessage> {
             case ChatMessageType.LEAVE_VALUE:
                 messageTextView.setText("[left the chat]");
                 break;
-            case ChatMessageType.HELLO_VALUE:
-                messageTextView.setText("[HELLO]");
-                break;
             case ChatMessageType.OTHER_VALUE:
                 messageTextView.setText("[OTHER]");
                 break;
@@ -120,6 +117,7 @@ public class MessagesAdapter extends ArrayAdapter<ChatMessage> {
     public void setLoggedInUsername(String username) { loggedInUsername = username; }
 
     public void addMessageToView(ChatMessage message) {
+        if (message.getType() == ChatMessageType.HELLO) return;
         add(message);
         notifyDataSetChanged();
     }
