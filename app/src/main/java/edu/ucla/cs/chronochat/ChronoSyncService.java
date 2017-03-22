@@ -78,7 +78,7 @@ public abstract class ChronoSyncService extends Service {
                 publishSeqNumsIfNeeded();
                 try {
                     face.processEvents();
-                    Thread.sleep(500); // avoid hammering the CPU
+                    Thread.sleep(100); // avoid hammering the CPU
                 } catch (IOException e) {
                     raiseError("error in processEvents loop", ErrorCode.NFD_PROBLEM, e);
                 } catch (Exception e) {
