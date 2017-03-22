@@ -5,8 +5,15 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import net.named_data.jndn.Data;
+import net.named_data.jndn.Face;
 import net.named_data.jndn.Interest;
+import net.named_data.jndn.InterestFilter;
+import net.named_data.jndn.Name;
+import net.named_data.jndn.OnData;
+import net.named_data.jndn.OnInterestCallback;
+import net.named_data.jndn.OnTimeout;
 
+import java.io.IOException;
 import java.util.UUID;
 
 import edu.ucla.cs.chronochat.ChatbufProto.ChatMessage;
@@ -48,7 +55,7 @@ public class ChronoChatService extends ChronoSyncService {
                                getString(R.string.app_name_prefix_component) + separator +
                                chatroom;
 
-                byte[] joinMessage = getJoinMessage();
+                byte[] joinMessage = getControlMessage(ChatMessageType.JOIN);
                 initializeService(dataPrefix, broadcastPrefix, joinMessage);
             }
 
@@ -62,7 +69,7 @@ public class ChronoChatService extends ChronoSyncService {
     }
 
     @Override
-    public void onReceivedSyncData(Interest interest, Data data) {
+    protected void onReceivedSyncData(Interest interest, Data data) {
         String dataName = interest.getName().toString();
         Log.d(TAG, "received sync data for " + dataName);
         byte[] receivedData = data.getContent().getImmutableArray();
@@ -72,12 +79,31 @@ public class ChronoChatService extends ChronoSyncService {
         LocalBroadcastManager.getInstance(this).sendBroadcast(bcast);
     }
 
-    private byte[] getJoinMessage() {
+    @Override
+    protected void setUpForApplication() {
+        sendHelloAndExpressHeartbeatInterest();
+    }
+
+    private void sendHelloAndExpressHeartbeatInterest() {
+
+        byte[] hello = getControlMessage(ChatMessageType.HELLO);
+        send(hello);
+
+        Interest heartbeat = new Interest(new Name("/timeout"));
+        heartbeat.setInterestLifetimeMilliseconds(60000);
+        try {
+            face.expressInterest(heartbeat, DummyOnData, OnHeartBeatTimeout);
+        } catch (IOException e) {
+            raiseError("error setting up heartbeat", ErrorCode.NFD_PROBLEM, e);
+        }
+    }
+
+    private byte[] getControlMessage(ChatMessageType type) {
         int timestamp = (int) (System.currentTimeMillis() / 1000);
         byte[] joinMessage = ChatMessage.newBuilder()
                 .setFrom(activeUsername)
                 .setTo(activeChatroom)
-                .setType(ChatMessageType.JOIN)
+                .setType(type)
                 .setTimestamp(timestamp)
                 .build()
                 .toByteArray();
@@ -87,4 +113,18 @@ public class ChronoChatService extends ChronoSyncService {
     private String getRandomStringForDataPrefix() {
         return UUID.randomUUID().toString();
     }
+
+    private static final OnData DummyOnData = new OnData() {
+        @Override
+        public void onData(Interest interest, Data data) {
+            Log.e(TAG, "DummyOnData callback should never be called!");
+        }
+    };
+
+    private final OnTimeout OnHeartBeatTimeout = new OnTimeout() {
+        @Override
+        public void onTimeout(Interest interest) {
+            sendHelloAndExpressHeartbeatInterest();
+        }
+    };
 }

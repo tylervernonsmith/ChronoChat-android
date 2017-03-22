@@ -69,6 +69,7 @@ public abstract class ChronoSyncService extends Service {
                 setCommandSigningInfo();
                 registerDataPrefix();
                 setUpChronoSync();
+                setUpForApplication();
             } catch (Exception e) {
                 raiseError("error during network thread initialization",
                         ErrorCode.OTHER_EXCEPTION, e);
@@ -191,6 +192,8 @@ public abstract class ChronoSyncService extends Service {
             stopNetworkThread(); // just in case
         }
     }
+
+    protected abstract void setUpForApplication();
 
     private void processSyncState(ChronoSync2013.SyncState syncState, boolean isRecovery) {
 
