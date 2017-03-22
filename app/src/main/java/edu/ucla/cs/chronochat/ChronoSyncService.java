@@ -298,7 +298,6 @@ public abstract class ChronoSyncService extends Service {
         public void onInterest(Name prefix, Interest interest, Face face, long interestFilterId,
                                InterestFilter filterData) {
             Name interestName = interest.getName();
-            Log.d(TAG, "data interest received: " + interestName.toString());
 
             Name.Component seqNumComponent = interestName.get(-1);
             Name.Component sessionComponent = interestName.get(-2);
@@ -306,8 +305,8 @@ public abstract class ChronoSyncService extends Service {
             long requestedSession = Long.parseLong(sessionComponent.toEscapedString());
 
             if (session == requestedSession && requestedSeqNum < nextDataSeqNum()) {
+                Log.d(TAG, "responding to data interest: " + interestName.toString());
                 byte[] requestedData = sentData.get(requestedSeqNum);
-                Log.d(TAG, "responding to data interest");
                 Data response = new Data(interestName);
                 Blob content = new Blob(requestedData);
                 response.setContent(content);
@@ -317,6 +316,10 @@ public abstract class ChronoSyncService extends Service {
                     raiseError("failure when responding to data interest",
                             ErrorCode.NFD_PROBLEM, e);
                 }
+            } else {
+                Log.d(TAG, "ignored data interest: " + interestName.toString() +
+                        "\ncurrent session = " + session + ", available seqnum = " +
+                        (nextDataSeqNum() - 1));
             }
         }
     };
