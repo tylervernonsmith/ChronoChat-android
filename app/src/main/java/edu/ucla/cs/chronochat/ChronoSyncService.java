@@ -212,7 +212,7 @@ public abstract class ChronoSyncService extends Service {
 
         // FIXME handle recovery states properly (?)
         if (isRecovery && nextSeqNumToRequest.get(syncDataId) == null) {
-            nextSeqNumToRequest.put(syncDataId, syncSeqNum); // skip requesting seqnum again
+            nextSeqNumToRequest.put(syncDataId, syncSeqNum + 1); // skip requesting seqnum again
         }
         requestMissingSeqNums(syncDataId, syncSeqNum);
 
