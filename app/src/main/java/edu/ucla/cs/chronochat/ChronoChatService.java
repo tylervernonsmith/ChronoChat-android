@@ -2,18 +2,19 @@ package edu.ucla.cs.chronochat;
 
 import android.content.Intent;
 import android.support.v4.content.LocalBroadcastManager;
+import android.text.TextUtils;
 import android.util.Log;
 
+import com.google.protobuf.InvalidProtocolBufferException;
+
 import net.named_data.jndn.Data;
-import net.named_data.jndn.Face;
 import net.named_data.jndn.Interest;
-import net.named_data.jndn.InterestFilter;
 import net.named_data.jndn.Name;
 import net.named_data.jndn.OnData;
-import net.named_data.jndn.OnInterestCallback;
 import net.named_data.jndn.OnTimeout;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.UUID;
 
 import edu.ucla.cs.chronochat.ChatbufProto.ChatMessage;
@@ -31,6 +32,8 @@ public class ChronoChatService extends ChronoSyncService {
 
     private String activeUsername, activeChatroom, activePrefix;
 
+    private HashMap<String, Integer> roster;
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
 
@@ -47,6 +50,9 @@ public class ChronoChatService extends ChronoSyncService {
                 activeUsername = username;
                 activeChatroom = chatroom;
                 activePrefix = prefix;
+
+                roster = new HashMap<>();
+                roster.put(activeUsername, 0);
 
                 String separator = getString(R.string.uri_separator),
                         randomString = getRandomStringForDataPrefix(),
@@ -73,6 +79,7 @@ public class ChronoChatService extends ChronoSyncService {
         String dataName = interest.getName().toString();
         Log.d(TAG, "received sync data for " + dataName);
         byte[] receivedData = data.getContent().getImmutableArray();
+        updateRoster(receivedData);
         Intent bcast = new Intent(BCAST_RECEIVED_MSG);
         bcast.putExtra(EXTRA_MESSAGE, receivedData)
              .putExtra(EXTRA_DATA_NAME, dataName);
@@ -82,6 +89,30 @@ public class ChronoChatService extends ChronoSyncService {
     @Override
     protected void setUpForApplication() {
         sendHelloAndExpressHeartbeatInterest();
+    }
+
+    private void updateRoster(byte[] receivedData) {
+
+        ChatMessage message;
+        try {
+            message = ChatMessage.parseFrom(receivedData);
+        } catch (InvalidProtocolBufferException e) {
+            raiseError("error updating roster: unable to parse message",
+                    ErrorCode.OTHER_EXCEPTION, e);
+            return;
+        }
+
+        String from = message.getFrom();
+        int timestamp = message.getTimestamp();
+        ChatMessageType type = message.getType();
+        if (type == ChatMessageType.LEAVE && roster.containsKey(from)) {
+            roster.remove(from);
+        } else {
+            roster.put(from, timestamp);
+        }
+
+        String logMsg = "roster updated: " + TextUtils.join(", ", roster.keySet());
+        Log.d(TAG, logMsg);
     }
 
     private void sendHelloAndExpressHeartbeatInterest() {
