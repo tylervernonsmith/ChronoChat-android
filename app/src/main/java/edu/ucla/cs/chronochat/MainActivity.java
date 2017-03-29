@@ -61,6 +61,9 @@ public class MainActivity extends AppCompatActivity {
                 case ChronoSyncService.BCAST_ERROR:
                     handleError(intent);
                     break;
+                case ChronoChatService.BCAST_ROSTER:
+                    String[] roster = intent.getStringArrayExtra(ChronoChatService.EXTRA_ROSTER);
+                    showRoster(roster);
             }
         }
     }
@@ -85,9 +88,10 @@ public class MainActivity extends AppCompatActivity {
         messageListAdapter = new MessagesAdapter(this, messageList);
         messageView.setAdapter(messageListAdapter);
 
-        IntentFilter broadcastIntentFilter = new IntentFilter(ChronoChatService.BCAST_RECEIVED_MSG);
-        registerBroadcastReceiver(broadcastIntentFilter);
-        broadcastIntentFilter = new IntentFilter(ChronoSyncService.BCAST_ERROR);
+        IntentFilter broadcastIntentFilter = new IntentFilter();
+        broadcastIntentFilter.addAction(ChronoSyncService.BCAST_ERROR);
+        broadcastIntentFilter.addAction(ChronoChatService.BCAST_RECEIVED_MSG);
+        broadcastIntentFilter.addAction(ChronoChatService.BCAST_ROSTER);
         registerBroadcastReceiver(broadcastIntentFilter);
 
         getLoginInfo(savedInstanceState);
@@ -158,7 +162,7 @@ public class MainActivity extends AppCompatActivity {
                 leaveChatroom();
                 return true;
             case R.id.action_show_roster:
-                showRoster();
+                requestRoster();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -251,8 +255,12 @@ public class MainActivity extends AppCompatActivity {
         notificationManager.cancel(NOTIFICATION_ID);
     }
 
-    private void showRoster() {
-        String[] roster = {"<test placeholder>"};
+    private void requestRoster() {
+        Intent request = getChronoChatServiceIntent(ChronoChatService.ACTION_GET_ROSTER);
+        startService(request);
+    }
+
+    private void showRoster(String[] roster) {
         Bundle args = new Bundle();
         args.putStringArray(ChronoChatService.EXTRA_ROSTER, roster);
         RosterDialogFragment dialog = new RosterDialogFragment();
