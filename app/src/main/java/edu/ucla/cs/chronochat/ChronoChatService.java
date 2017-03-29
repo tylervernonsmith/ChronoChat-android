@@ -145,14 +145,14 @@ public class ChronoChatService extends ChronoSyncService {
 
     private byte[] getControlMessage(ChatMessageType type) {
         int timestamp = (int) (System.currentTimeMillis() / 1000);
-        byte[] joinMessage = ChatMessage.newBuilder()
+        byte[] message = ChatMessage.newBuilder()
                 .setFrom(activeUsername)
                 .setTo(activeChatroom)
                 .setType(type)
                 .setTimestamp(timestamp)
                 .build()
                 .toByteArray();
-        return joinMessage;
+        return message;
     }
 
     private String getRandomStringForDataPrefix() {
