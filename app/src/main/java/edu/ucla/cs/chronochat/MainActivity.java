@@ -7,6 +7,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.support.v4.app.DialogFragment;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -154,9 +155,10 @@ public class MainActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.action_leave:
-                ChatMessage leave = encodeMessage(username, chatroom, ChatMessageType.LEAVE);
-                sendMessage(leave);
-                getLoginInfo(null);
+                leaveChatroom();
+                return true;
+            case R.id.action_show_roster:
+                showRoster();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -249,6 +251,15 @@ public class MainActivity extends AppCompatActivity {
         notificationManager.cancel(NOTIFICATION_ID);
     }
 
+    private void showRoster() {
+        String[] roster = {"<test placeholder>"};
+        Bundle args = new Bundle();
+        args.putStringArray(ChronoChatService.EXTRA_ROSTER, roster);
+        RosterDialogFragment dialog = new RosterDialogFragment();
+        dialog.setArguments(args);
+        dialog.show(getFragmentManager(), "RosterDialogFragment");
+    }
+
     private void handleError(Intent intent) {
         ErrorCode errorCode =
                 (ErrorCode) intent.getSerializableExtra(ChronoSyncService.EXTRA_ERROR_CODE);
@@ -262,6 +273,13 @@ public class MainActivity extends AppCompatActivity {
                 break;
         }
         Toast.makeText(getApplicationContext(), toastText, Toast.LENGTH_LONG).show();
+        getLoginInfo(null);
+    }
+
+
+    private void leaveChatroom() {
+        ChatMessage leave = encodeMessage(username, chatroom, ChatMessageType.LEAVE);
+        sendMessage(leave);
         getLoginInfo(null);
     }
 

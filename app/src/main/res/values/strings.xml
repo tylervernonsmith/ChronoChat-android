@@ -3,6 +3,9 @@
     <string name="action_settings">Settings</string>
     <string name="edit_message">Send ChronoChat message</string>
     <string name="action_leave">Leave this chatroom</string>
+    <string name="action_show_roster">Show roster</string>
+    <string name="dialog_roster">Roster</string>
+    <string name="dismiss_roster">Dismiss</string>
 
     <string name="app_name_prefix_component">ChronoChat-0.3</string>
     <string name="broadcast_base_prefix">/ndn/broadcast</string>
