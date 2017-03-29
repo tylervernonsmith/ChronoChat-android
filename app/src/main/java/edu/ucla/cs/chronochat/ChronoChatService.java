@@ -29,7 +29,9 @@ public class ChronoChatService extends ChronoSyncService {
                                EXTRA_CHATROOM = INTENT_PREFIX + "EXTRA_CHATROOM",
                                EXTRA_PREFIX = INTENT_PREFIX + "EXTRA_PREFIX",
                                EXTRA_ROSTER = INTENT_PREFIX + "EXTRA_ROSTER",
-                               BCAST_RECEIVED_MSG = INTENT_PREFIX + "BCAST_RECEIVED_MSG";
+                               BCAST_RECEIVED_MSG = INTENT_PREFIX + "BCAST_RECEIVED_MSG",
+                               BCAST_ROSTER = INTENT_PREFIX + "BCAST_ROSTER",
+                               ACTION_GET_ROSTER = INTENT_PREFIX + "ACTION_GET_ROSTER";
 
     private String activeUsername, activeChatroom, activePrefix;
 
@@ -69,6 +71,10 @@ public class ChronoChatService extends ChronoSyncService {
             byte[] message = intent.getByteArrayExtra(EXTRA_MESSAGE);
             if (message != null) {
                 send(message);
+            }
+
+            if (intent.getAction() == ACTION_GET_ROSTER) {
+                broadcastRoster();
             }
         }
 
@@ -114,6 +120,13 @@ public class ChronoChatService extends ChronoSyncService {
 
         String logMsg = "roster updated: " + TextUtils.join(", ", roster.keySet());
         Log.d(TAG, logMsg);
+    }
+
+    private void broadcastRoster() {
+        Intent rosterIntent = new Intent(BCAST_ROSTER);
+        String[] usernames = roster.keySet().toArray(new String[0]);
+        rosterIntent.putExtra(EXTRA_ROSTER, usernames);
+        LocalBroadcastManager.getInstance(this).sendBroadcast(rosterIntent);
     }
 
     private void sendHelloAndExpressHeartbeatInterest() {
