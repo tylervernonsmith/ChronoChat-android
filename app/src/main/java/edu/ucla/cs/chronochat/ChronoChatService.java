@@ -31,7 +31,8 @@ public class ChronoChatService extends ChronoSyncService {
                                EXTRA_ROSTER = INTENT_PREFIX + "EXTRA_ROSTER",
                                BCAST_RECEIVED_MSG = INTENT_PREFIX + "BCAST_RECEIVED_MSG",
                                BCAST_ROSTER = INTENT_PREFIX + "BCAST_ROSTER",
-                               ACTION_GET_ROSTER = INTENT_PREFIX + "ACTION_GET_ROSTER";
+                               ACTION_GET_ROSTER = INTENT_PREFIX + "ACTION_GET_ROSTER",
+                               ACTION_SEND = INTENT_PREFIX + "ACTION_SEND";
 
     private String activeUsername, activeChatroom, activePrefix;
 
@@ -44,39 +45,23 @@ public class ChronoChatService extends ChronoSyncService {
 
         if (intent != null) {
             Log.d(TAG, "received intent");
-            final String username = intent.getStringExtra(EXTRA_USERNAME),
-                    chatroom = intent.getStringExtra(EXTRA_CHATROOM),
-                    prefix = intent.getStringExtra(EXTRA_PREFIX);
-
-            if (activeUsername == null || activeChatroom == null || activePrefix == null ||
-                    !activeUsername.equals(username) || !activeChatroom.equals(chatroom) ||
-                    !activePrefix.equals(prefix)) {
-
-                activeUsername = username;
-                activeChatroom = chatroom;
-                activePrefix = prefix;
-
-                roster = new HashMap<>();
-                roster.put(activeUsername, 0);
-
-                String separator = getString(R.string.uri_separator),
-                        randomString = getRandomStringForDataPrefix(),
-                        dataPrefix = prefix + separator + chatroom + separator + randomString,
-                        broadcastPrefix = getString(R.string.broadcast_base_prefix) + separator +
-                               getString(R.string.app_name_prefix_component) + separator +
-                               chatroom;
-
-                byte[] joinMessage = getControlMessage(ChatMessageType.JOIN);
-                initializeService(dataPrefix, broadcastPrefix, joinMessage);
-            }
-
-            byte[] message = intent.getByteArrayExtra(EXTRA_MESSAGE);
-            if (message != null) {
-                send(message);
-            }
-
-            if (intent.getAction() == ACTION_GET_ROSTER) {
-                broadcastRoster();
+            switch(intent.getAction()) {
+                case ACTION_SEND:
+                    byte[] message = intent.getByteArrayExtra(EXTRA_MESSAGE);
+                    String prefix = intent.getStringExtra(EXTRA_PREFIX);
+                    if (prefix == null) {
+                        raiseError("ACTION_SEND intent requires prefix",
+                                ErrorCode.OTHER_EXCEPTION);
+                    } else if (message == null) {
+                        raiseError("ACTION_SEND intent requires message data",
+                                ErrorCode.OTHER_EXCEPTION);
+                    } else {
+                        sendMessage(message, prefix);
+                    }
+                    break;
+                case ACTION_GET_ROSTER:
+                    broadcastRoster();
+                    break;
             }
         }
 
@@ -100,6 +85,55 @@ public class ChronoChatService extends ChronoSyncService {
         sendHelloAndExpressHeartbeatInterest();
     }
 
+    protected void sendMessage(byte[] data, final String prefix) {
+
+        ChatMessage message;
+        try {
+            message = ChatMessage.parseFrom(data);
+        } catch (InvalidProtocolBufferException e) {
+            raiseError("error sending message: unable to parse",
+                    ErrorCode.OTHER_EXCEPTION, e);
+            return;
+        }
+
+        initializeServiceIfNeeded(message, prefix);
+        ChatMessageType type = message.getType();
+
+        if (type != ChatMessageType.JOIN) {  // JOIN would be handled by initializeServiceIfNeeded()
+            if (type == ChatMessageType.LEAVE)
+                prepareToLeaveChat();
+            send(data);
+        }
+    }
+
+    private void initializeServiceIfNeeded(final ChatMessage message, final String prefix) {
+
+        final String username = message.getFrom(),
+                chatroom = message.getTo();
+
+        if (activeUsername == null || activeChatroom == null || activePrefix == null ||
+                !activeUsername.equals(username) || !activeChatroom.equals(chatroom) ||
+                !activePrefix.equals(prefix)) {
+
+            activeUsername = username;
+            activeChatroom = chatroom;
+            activePrefix = prefix;
+
+            roster = new HashMap<>();
+            roster.put(activeUsername, 0);
+
+            String separator = getString(R.string.uri_separator),
+                    randomString = getRandomStringForDataPrefix(),
+                    dataPrefix = prefix + separator + chatroom + separator + randomString,
+                    broadcastPrefix = getString(R.string.broadcast_base_prefix) + separator +
+                            getString(R.string.app_name_prefix_component) + separator +
+                            chatroom;
+
+            byte[] joinMessage = (message.getType() == ChatMessageType.JOIN) ?
+                    message.toByteArray() : getControlMessage(ChatMessageType.JOIN);
+            initializeService(dataPrefix, broadcastPrefix, joinMessage);
+        }
+    }
 
     private void prepareToLeaveChat() {
         activeUsername = activeChatroom = activePrefix = null;

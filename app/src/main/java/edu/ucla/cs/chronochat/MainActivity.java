@@ -131,8 +131,8 @@ public class MainActivity extends AppCompatActivity {
         prefix = data.getStringExtra(ChronoChatService.EXTRA_PREFIX);
         setChatroom(data.getStringExtra(ChronoChatService.EXTRA_CHATROOM));
 
-        Intent intent = getChronoChatServiceIntent(null);
-        startService(intent);
+        ChatMessage join = encodeMessage(username, chatroom, ChatMessageType.JOIN);
+        sendMessage(join);
     }
 
     @Override
@@ -191,18 +191,11 @@ public class MainActivity extends AppCompatActivity {
 
     private void sendMessage(ChatMessage message) {
         messageListAdapter.addMessageToView(message);
-        Intent intent = getChronoChatServiceIntent(null);
-        intent.putExtra(ChronoChatService.EXTRA_MESSAGE, message.toByteArray());
-        startService(intent);
-    }
-
-    private Intent getChronoChatServiceIntent(String action) {
         Intent intent = new Intent(this, ChronoChatService.class);
-        intent.setAction(action);
-        intent.putExtra(ChronoChatService.EXTRA_USERNAME, username)
-                .putExtra(ChronoChatService.EXTRA_CHATROOM, chatroom)
-                .putExtra(ChronoChatService.EXTRA_PREFIX, prefix);
-        return intent;
+        intent.setAction(ChronoChatService.ACTION_SEND)
+              .putExtra(ChronoChatService.EXTRA_MESSAGE, message.toByteArray())
+              .putExtra(ChronoChatService.EXTRA_PREFIX, prefix);
+        startService(intent);
     }
 
     private void handleReceivedMessage(Intent intent) {
@@ -256,7 +249,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void requestRoster() {
-        Intent request = getChronoChatServiceIntent(ChronoChatService.ACTION_GET_ROSTER);
+        Intent request = new Intent(this, ChronoChatService.class);
+        request.setAction(ChronoChatService.ACTION_GET_ROSTER);
         startService(request);
     }
 
