@@ -37,6 +37,8 @@ public class ChronoChatService extends ChronoSyncService {
 
     private HashMap<String, Integer> roster;
 
+    Long heartbeatInterestID;
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
 
@@ -98,6 +100,15 @@ public class ChronoChatService extends ChronoSyncService {
         sendHelloAndExpressHeartbeatInterest();
     }
 
+
+    private void prepareToLeaveChat() {
+        activeUsername = activeChatroom = activePrefix = null;
+        if (heartbeatInterestID != null) {                      // stop heartbeat
+            face.removePendingInterest(heartbeatInterestID);
+            heartbeatInterestID = null;
+        }
+    }
+
     private void updateRoster(byte[] receivedData) {
 
         ChatMessage message;
@@ -137,7 +148,7 @@ public class ChronoChatService extends ChronoSyncService {
         Interest heartbeat = new Interest(new Name("/timeout"));
         heartbeat.setInterestLifetimeMilliseconds(60000);
         try {
-            face.expressInterest(heartbeat, DummyOnData, OnHeartBeatTimeout);
+            heartbeatInterestID = face.expressInterest(heartbeat, DummyOnData, OnHeartBeatTimeout);
         } catch (IOException e) {
             raiseError("error setting up heartbeat", ErrorCode.NFD_PROBLEM, e);
         }
