@@ -44,8 +44,9 @@ public class ChronoChatService extends ChronoSyncService {
     public int onStartCommand(Intent intent, int flags, int startId) {
 
         if (intent != null) {
-            Log.d(TAG, "received intent");
-            switch(intent.getAction()) {
+            String action = intent.getAction();
+            Log.d(TAG, "received intent " + action);
+            switch(action) {
                 case ACTION_SEND:
                     byte[] message = intent.getByteArrayExtra(EXTRA_MESSAGE);
                     String prefix = intent.getStringExtra(EXTRA_PREFIX);
