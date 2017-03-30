@@ -161,14 +161,11 @@ public class ChronoChatService extends ChronoSyncService {
         String from = message.getFrom();
         int timestamp = message.getTimestamp();
         ChatMessageType type = message.getType();
-        if (type == ChatMessageType.LEAVE && roster.containsKey(from)) {
+        if (type == ChatMessageType.LEAVE) {
             roster.remove(from);
         } else {
             roster.put(from, timestamp);
         }
-
-        String logMsg = "roster updated: " + TextUtils.join(", ", roster.keySet());
-        Log.d(TAG, logMsg);
     }
 
     private void broadcastRoster() {
