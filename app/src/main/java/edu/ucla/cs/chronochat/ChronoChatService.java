@@ -168,6 +168,7 @@ public class ChronoChatService extends ChronoSyncService {
     }
 
     private void broadcastRoster() {
+        if (roster == null) return;
         Intent rosterIntent = new Intent(BCAST_ROSTER);
         String[] usernames = roster.keySet().toArray(new String[0]);
         rosterIntent.putExtra(EXTRA_ROSTER, usernames);
