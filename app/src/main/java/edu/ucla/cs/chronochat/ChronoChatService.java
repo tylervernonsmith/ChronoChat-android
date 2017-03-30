@@ -72,6 +72,10 @@ public class ChronoChatService extends ChronoSyncService {
     protected void onReceivedSyncData(Interest interest, Data data) {
         String dataName = interest.getName().toString();
         Log.d(TAG, "received sync data for " + dataName);
+        if (activeUsername == null) {
+            Log.d(TAG, "ignoring sync data because we are logged out");
+            return;
+        }
         byte[] receivedData = data.getContent().getImmutableArray();
         updateRoster(receivedData);
         Intent bcast = new Intent(BCAST_RECEIVED_MSG);
