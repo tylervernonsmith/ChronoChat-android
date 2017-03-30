@@ -140,6 +140,12 @@ public class ChronoChatService extends ChronoSyncService {
         }
     }
 
+    @Override
+    protected void cleanup() {
+        prepareToLeaveChat();
+        super.cleanup();
+    }
+
     private void prepareToLeaveChat() {
         activeUsername = activeChatroom = activePrefix = null;
         if (heartbeatInterestID != null) {                      // stop heartbeat
