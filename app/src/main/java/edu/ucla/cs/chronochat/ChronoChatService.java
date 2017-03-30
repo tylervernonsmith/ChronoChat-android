@@ -71,18 +71,31 @@ public class ChronoChatService extends ChronoSyncService {
 
     @Override
     protected void onReceivedSyncData(Interest interest, Data data) {
+
         String dataName = interest.getName().toString();
         Log.d(TAG, "received sync data for " + dataName);
         if (activeUsername == null) {
             Log.d(TAG, "ignoring sync data because we are logged out");
             return;
         }
+
         byte[] receivedData = data.getContent().getImmutableArray();
-        updateRoster(receivedData);
-        Intent bcast = new Intent(BCAST_RECEIVED_MSG);
-        bcast.putExtra(EXTRA_MESSAGE, receivedData)
-             .putExtra(EXTRA_DATA_NAME, dataName);
-        LocalBroadcastManager.getInstance(this).sendBroadcast(bcast);
+        ChatMessage message;
+        try {
+            message = ChatMessage.parseFrom(receivedData);
+        } catch (InvalidProtocolBufferException e) {
+            raiseError("error receiving message: unable to parse",
+                    ErrorCode.OTHER_EXCEPTION, e);
+            return;
+        }
+
+        String from = message.getFrom();
+        ChatMessageType type = message.getType();
+        int timestamp = message.getTimestamp();
+
+        fakeJoinMessageIfNeeded(from, type);
+        updateRoster(from, type, timestamp);
+        broadcastReceivedMessage(receivedData);
     }
 
     @Override
@@ -154,25 +167,24 @@ public class ChronoChatService extends ChronoSyncService {
         }
     }
 
-    private void updateRoster(byte[] receivedData) {
+    private void fakeJoinMessageIfNeeded(String from, ChatMessageType type) {
+        if (roster.containsKey(from) || type == ChatMessageType.JOIN) return;
+        byte[] join = getControlMessage(ChatMessageType.JOIN, from);
+        broadcastReceivedMessage(join);
+    }
 
-        ChatMessage message;
-        try {
-            message = ChatMessage.parseFrom(receivedData);
-        } catch (InvalidProtocolBufferException e) {
-            raiseError("error updating roster: unable to parse message",
-                    ErrorCode.OTHER_EXCEPTION, e);
-            return;
-        }
-
-        String from = message.getFrom();
-        int timestamp = message.getTimestamp();
-        ChatMessageType type = message.getType();
+    private void updateRoster(String from, ChatMessageType type, int timestamp) {
         if (type == ChatMessageType.LEAVE) {
             roster.remove(from);
         } else {
             roster.put(from, timestamp);
         }
+    }
+
+    private void broadcastReceivedMessage(byte[] message) {
+        Intent bcast = new Intent(BCAST_RECEIVED_MSG);
+        bcast.putExtra(EXTRA_MESSAGE, message);
+        LocalBroadcastManager.getInstance(this).sendBroadcast(bcast);
     }
 
     private void broadcastRoster() {
@@ -197,10 +209,15 @@ public class ChronoChatService extends ChronoSyncService {
         }
     }
 
+
     private byte[] getControlMessage(ChatMessageType type) {
+        return getControlMessage(type, activeUsername);
+    }
+
+    private byte[] getControlMessage(ChatMessageType type, String from) {
         int timestamp = (int) (System.currentTimeMillis() / 1000);
         byte[] message = ChatMessage.newBuilder()
-                .setFrom(activeUsername)
+                .setFrom(from)
                 .setTo(activeChatroom)
                 .setType(type)
                 .setTimestamp(timestamp)
