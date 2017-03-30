@@ -269,7 +269,7 @@ public abstract class ChronoSyncService extends Service {
     @Override
     public IBinder onBind(Intent intent) { return null; }
 
-    protected void cleanup() {
+    private void cleanup() {
         Log.d(TAG, "cleaning up and resetting service...");
         syncInitialized = false;
         if (sync != null) sync.shutdown();

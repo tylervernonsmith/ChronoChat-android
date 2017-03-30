@@ -90,6 +90,12 @@ public class ChronoChatService extends ChronoSyncService {
         sendHelloAndExpressHeartbeatInterest();
     }
 
+    @Override
+    protected void raiseError(String logMessage, ErrorCode code) {
+        prepareToLeaveChat();
+        super.raiseError(logMessage, code);
+    }
+
     protected void sendMessage(byte[] data, final String prefix) {
 
         ChatMessage message;
@@ -138,12 +144,6 @@ public class ChronoChatService extends ChronoSyncService {
                     message.toByteArray() : getControlMessage(ChatMessageType.JOIN);
             initializeService(dataPrefix, broadcastPrefix, joinMessage);
         }
-    }
-
-    @Override
-    protected void cleanup() {
-        prepareToLeaveChat();
-        super.cleanup();
     }
 
     private void prepareToLeaveChat() {
