@@ -7,7 +7,6 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.support.v4.app.DialogFragment;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -94,7 +93,11 @@ public class MainActivity extends AppCompatActivity {
         broadcastIntentFilter.addAction(ChronoChatService.BCAST_ROSTER);
         registerBroadcastReceiver(broadcastIntentFilter);
 
-        getLoginInfo(savedInstanceState);
+        if (savedInstanceState != null) {
+            setUsername(savedInstanceState.getString(SAVED_USERNAME));
+            prefix = savedInstanceState.getString(SAVED_PREFIX);
+            setChatroom(savedInstanceState.getString(SAVED_CHATROOM));
+        }
     }
 
     @Override
@@ -102,6 +105,8 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         activityVisible = true;
         hideNotification();
+        if (!loginInfoIsSet())
+            getLoginInfo();
     }
 
     @Override
@@ -110,16 +115,9 @@ public class MainActivity extends AppCompatActivity {
         activityVisible = false;
     }
 
-    private void getLoginInfo(Bundle savedInstanceState) {
-        if (savedInstanceState == null) {
-            messageList.clear();
-            messageListAdapter.notifyDataSetChanged();
-            startActivityForResult(new Intent(this, LoginActivity.class), 0);
-        } else {
-            setUsername(savedInstanceState.getString(SAVED_USERNAME));
-            prefix = savedInstanceState.getString(SAVED_PREFIX);
-            setChatroom(savedInstanceState.getString(SAVED_CHATROOM));
-        }
+    private void getLoginInfo() {
+        clearLoginInfo();
+        startActivityForResult(new Intent(this, LoginActivity.class), 0);
     }
 
     @Override
@@ -127,6 +125,9 @@ public class MainActivity extends AppCompatActivity {
         if (resultCode != RESULT_OK) {
             startActivityForResult(new Intent(this, LoginActivity.class), 0);
         }
+
+        messageList.clear();
+        messageListAdapter.notifyDataSetChanged();
         setUsername(data.getStringExtra(ChronoChatService.EXTRA_USERNAME));
         prefix = data.getStringExtra(ChronoChatService.EXTRA_PREFIX);
         setChatroom(data.getStringExtra(ChronoChatService.EXTRA_CHATROOM));
@@ -275,14 +276,17 @@ public class MainActivity extends AppCompatActivity {
                 break;
         }
         Toast.makeText(getApplicationContext(), toastText, Toast.LENGTH_LONG).show();
-        getLoginInfo(null);
+
+        clearLoginInfo();
+        if (activityVisible)
+            getLoginInfo();
     }
 
 
     private void leaveChatroom() {
         ChatMessage leave = encodeMessage(username, chatroom, ChatMessageType.LEAVE);
         sendMessage(leave);
-        getLoginInfo(null);
+        getLoginInfo();
     }
 
     private ChatMessage encodeMessage(String username, String chatroom, ChatMessageType type) {
@@ -304,6 +308,14 @@ public class MainActivity extends AppCompatActivity {
                 .setType(type)
                 .setTimestamp(timestamp)
                 .build();
+    }
+
+    private boolean loginInfoIsSet() {
+        return (username != null && chatroom != null && prefix != null);
+    }
+
+    private void clearLoginInfo() {
+        username = chatroom = prefix = null;
     }
 }
 
