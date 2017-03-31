@@ -279,10 +279,10 @@ public class MainActivity extends AppCompatActivity {
         String toastText = "";
         switch (errorCode) {
             case NFD_PROBLEM:
-                toastText = "Encountered an NFD error... maybe the service has closed?";
+                toastText = getString(R.string.error_nfd);
                 break;
             case OTHER_EXCEPTION:
-                toastText = "Encountered an error, please check debug logs...";
+                toastText = getString(R.string.error_other);
                 break;
         }
         Toast.makeText(getApplicationContext(), toastText, Toast.LENGTH_LONG).show();

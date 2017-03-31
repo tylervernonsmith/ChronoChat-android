@@ -13,4 +13,6 @@
     <string name="default_prefix">/ndn/edu/ucla/remap</string>
     <string name="default_hub">localhost</string>
     <string name="uri_separator">/</string>
+    <string name="error_nfd">ChronoChat is having trouble communicating with the NDN system. Please check your hub URI, or ensure NFD is running if using "localhost".</string>
+    <string name="error_other">Sorry, a ChronoChat error has occurred. Please check the debug log.</string>
 </resources>
