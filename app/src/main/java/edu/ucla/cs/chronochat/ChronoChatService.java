@@ -2,7 +2,6 @@ package edu.ucla.cs.chronochat;
 
 import android.content.Intent;
 import android.support.v4.content.LocalBroadcastManager;
-import android.text.TextUtils;
 import android.util.Log;
 
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -36,9 +35,9 @@ public class ChronoChatService extends ChronoSyncService {
 
     private String activeUsername, activeChatroom, activePrefix;
 
-    private HashMap<String, Integer> roster;
+    private HashMap<String, Integer> roster, rosterAtLastZombieCheck;
 
-    Long heartbeatInterestID;
+    Long heartbeatInterestID, zombieTimeoutInterestID;
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -101,6 +100,7 @@ public class ChronoChatService extends ChronoSyncService {
     @Override
     protected void setUpForApplication() {
         sendHelloAndExpressHeartbeatInterest();
+        expressZombieTimeoutInterest();
     }
 
     @Override
@@ -165,6 +165,10 @@ public class ChronoChatService extends ChronoSyncService {
             face.removePendingInterest(heartbeatInterestID);
             heartbeatInterestID = null;
         }
+        if (zombieTimeoutInterestID != null) {                   // stop zombie timeout
+            face.removePendingInterest(zombieTimeoutInterestID);
+            zombieTimeoutInterestID = null;
+        }
     }
 
     private void fakeJoinMessageIfNeeded(String from, ChatMessageType type) {
@@ -209,6 +213,11 @@ public class ChronoChatService extends ChronoSyncService {
         }
     }
 
+    private void expressZombieTimeoutInterest() {
+        Log.d(TAG, "(re)starting zombie timeout");
+        zombieTimeoutInterestID = expressTimeoutInterest(OnZombieTimeout, 120000,
+                "error setting up zombie timeout");
+    }
 
     private byte[] getControlMessage(ChatMessageType type) {
         return getControlMessage(type, activeUsername);
@@ -226,6 +235,17 @@ public class ChronoChatService extends ChronoSyncService {
         return message;
     }
 
+    private Long expressTimeoutInterest(OnTimeout onTimeout, long lifetimeMillis, String errorMsg) {
+        Interest timeout = new Interest(new Name("/timeout"));
+        timeout.setInterestLifetimeMilliseconds(lifetimeMillis);
+        try {
+            return face.expressInterest(timeout, DummyOnData, onTimeout);
+        } catch (IOException e) {
+            raiseError(errorMsg, ErrorCode.NFD_PROBLEM, e);
+            return null;
+        }
+    }
+
     private String getRandomStringForDataPrefix() {
         return UUID.randomUUID().toString();
     }
@@ -241,6 +261,37 @@ public class ChronoChatService extends ChronoSyncService {
         @Override
         public void onTimeout(Interest interest) {
             sendHelloAndExpressHeartbeatInterest();
+        }
+    };
+
+    private final OnTimeout OnZombieTimeout = new OnTimeout() {
+        @Override
+        public void onTimeout(Interest interest) {
+
+            Log.d(TAG, "checking for zombies...");
+            if (rosterAtLastZombieCheck == null) rosterAtLastZombieCheck = new HashMap<>();
+            HashMap<String, Integer> updatedRoster = new HashMap<>();
+
+            for (String user : roster.keySet()) {
+
+                if (user.equals(activeUsername)) continue;
+                Integer currentTimestamp = roster.get(user),
+                        lastTimestamp = rosterAtLastZombieCheck.get(user);
+
+                if (currentTimestamp.equals(lastTimestamp)) {
+                    Log.d(TAG, "user '" + user + "' seems to be a zombie");
+                    byte[] leave = getControlMessage(ChatMessageType.LEAVE, user);
+                    broadcastReceivedMessage(leave); // create fake LEAVE message for chat log
+                    // Note that we're leaving the user out of "updatedRoster"...
+                } else {
+                    Log.d(TAG, "user '" + user + "' seems alive");
+                    updatedRoster.put(user, currentTimestamp);
+                }
+            }
+
+            roster = updatedRoster;
+            rosterAtLastZombieCheck = new HashMap<>(updatedRoster);
+            expressZombieTimeoutInterest();
         }
     };
 }
