@@ -99,7 +99,7 @@ public class ChronoChatService extends ChronoSyncService {
 
     @Override
     protected void setUpForApplication() {
-        sendHelloAndExpressHeartbeatInterest();
+        expressHeartbeatInterest();
         expressZombieTimeoutInterest();
     }
 
@@ -199,24 +199,27 @@ public class ChronoChatService extends ChronoSyncService {
         LocalBroadcastManager.getInstance(this).sendBroadcast(rosterIntent);
     }
 
-    private void sendHelloAndExpressHeartbeatInterest() {
-
-        byte[] hello = getControlMessage(ChatMessageType.HELLO);
-        send(hello);
-
-        Interest heartbeat = new Interest(new Name("/timeout"));
-        heartbeat.setInterestLifetimeMilliseconds(60000);
-        try {
-            heartbeatInterestID = face.expressInterest(heartbeat, DummyOnData, OnHeartBeatTimeout);
-        } catch (IOException e) {
-            raiseError("error setting up heartbeat", ErrorCode.NFD_PROBLEM, e);
-        }
+    private void expressHeartbeatInterest() {
+        Log.d(TAG, "(re)starting heartbeat timeout");
+        heartbeatInterestID = expressTimeoutInterest(OnHeartBeatTimeout, 60000,
+                "error setting up heartbeat");
     }
 
     private void expressZombieTimeoutInterest() {
         Log.d(TAG, "(re)starting zombie timeout");
         zombieTimeoutInterestID = expressTimeoutInterest(OnZombieTimeout, 120000,
                 "error setting up zombie timeout");
+    }
+
+    private Long expressTimeoutInterest(OnTimeout onTimeout, long lifetimeMillis, String errorMsg) {
+        Interest timeout = new Interest(new Name("/timeout"));
+        timeout.setInterestLifetimeMilliseconds(lifetimeMillis);
+        try {
+            return face.expressInterest(timeout, DummyOnData, onTimeout);
+        } catch (IOException e) {
+            raiseError(errorMsg, ErrorCode.NFD_PROBLEM, e);
+            return null;
+        }
     }
 
     private byte[] getControlMessage(ChatMessageType type) {
@@ -235,17 +238,6 @@ public class ChronoChatService extends ChronoSyncService {
         return message;
     }
 
-    private Long expressTimeoutInterest(OnTimeout onTimeout, long lifetimeMillis, String errorMsg) {
-        Interest timeout = new Interest(new Name("/timeout"));
-        timeout.setInterestLifetimeMilliseconds(lifetimeMillis);
-        try {
-            return face.expressInterest(timeout, DummyOnData, onTimeout);
-        } catch (IOException e) {
-            raiseError(errorMsg, ErrorCode.NFD_PROBLEM, e);
-            return null;
-        }
-    }
-
     private String getRandomStringForDataPrefix() {
         return UUID.randomUUID().toString();
     }
@@ -260,7 +252,10 @@ public class ChronoChatService extends ChronoSyncService {
     private final OnTimeout OnHeartBeatTimeout = new OnTimeout() {
         @Override
         public void onTimeout(Interest interest) {
-            sendHelloAndExpressHeartbeatInterest();
+            Log.d(TAG, "sending HELLO");
+            byte[] hello = getControlMessage(ChatMessageType.HELLO);
+            send(hello);
+            expressHeartbeatInterest();
         }
     };
 
