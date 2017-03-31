@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.support.v4.content.LocalBroadcastManager;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.app.NotificationCompat;
@@ -180,7 +181,12 @@ public class MainActivity extends AppCompatActivity {
 
     private void setChatroom(String chatroom) {
         this.chatroom = chatroom;
-        getSupportActionBar().setTitle(chatroom);
+        ActionBar actionBar = getSupportActionBar();
+        if (actionBar == null)
+            Log.e(TAG, "couldn't retrieve action bar to set title");
+        else {
+            actionBar.setTitle(chatroom);
+        }
     }
 
     public void sendMessage(View view) {

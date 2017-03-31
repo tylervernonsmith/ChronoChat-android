@@ -236,14 +236,13 @@ public class ChronoChatService extends ChronoSyncService {
 
     private byte[] getControlMessage(ChatMessageType type, String from) {
         int timestamp = (int) (System.currentTimeMillis() / 1000);
-        byte[] message = ChatMessage.newBuilder()
+        return ChatMessage.newBuilder()
                 .setFrom(from)
                 .setTo(activeChatroom)
                 .setType(type)
                 .setTimestamp(timestamp)
                 .build()
                 .toByteArray();
-        return message;
     }
 
     private String getRandomStringForDataPrefix() {
