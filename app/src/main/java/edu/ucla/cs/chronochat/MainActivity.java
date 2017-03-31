@@ -35,7 +35,8 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity",
                                 SAVED_USERNAME = TAG + ".username",
                                 SAVED_CHATROOM = TAG + ".chatroom",
-                                SAVED_PREFIX = TAG + ".prefix";
+                                SAVED_PREFIX = TAG + ".prefix",
+                                SAVED_HUB = TAG + ".hub";
 
     // index of username component in data names
     private static final int NOTIFICATION_ID = 0;
@@ -44,7 +45,7 @@ public class MainActivity extends AppCompatActivity {
     private ArrayList<ChatMessage> messageList = new ArrayList<>();
     private MessagesAdapter messageListAdapter;
 
-    private String username, chatroom, prefix;
+    private String username, chatroom, prefix, hub;
 
     private boolean activityVisible = false;
 
@@ -97,6 +98,7 @@ public class MainActivity extends AppCompatActivity {
             setUsername(savedInstanceState.getString(SAVED_USERNAME));
             prefix = savedInstanceState.getString(SAVED_PREFIX);
             setChatroom(savedInstanceState.getString(SAVED_CHATROOM));
+            hub = savedInstanceState.getString(SAVED_HUB);
         }
     }
 
@@ -131,6 +133,7 @@ public class MainActivity extends AppCompatActivity {
         setUsername(data.getStringExtra(ChronoChatService.EXTRA_USERNAME));
         prefix = data.getStringExtra(ChronoChatService.EXTRA_PREFIX);
         setChatroom(data.getStringExtra(ChronoChatService.EXTRA_CHATROOM));
+        hub = data.getStringExtra(ChronoChatService.EXTRA_HUB);
 
         ChatMessage join = encodeMessage(username, chatroom, ChatMessageType.JOIN);
         sendMessage(join);
@@ -195,7 +198,8 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(this, ChronoChatService.class);
         intent.setAction(ChronoChatService.ACTION_SEND)
               .putExtra(ChronoChatService.EXTRA_MESSAGE, message.toByteArray())
-              .putExtra(ChronoChatService.EXTRA_PREFIX, prefix);
+              .putExtra(ChronoChatService.EXTRA_PREFIX, prefix)
+              .putExtra(ChronoChatService.EXTRA_HUB, hub);
         startService(intent);
     }
 
@@ -311,11 +315,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private boolean loginInfoIsSet() {
-        return (username != null && chatroom != null && prefix != null);
+        return (username != null && chatroom != null && prefix != null && hub != null);
     }
 
     private void clearLoginInfo() {
-        username = chatroom = prefix = null;
+        username = chatroom = prefix = hub = null;
     }
 }
 

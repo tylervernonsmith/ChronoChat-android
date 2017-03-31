@@ -27,13 +27,15 @@ public class ChronoChatService extends ChronoSyncService {
     public static final String EXTRA_USERNAME = INTENT_PREFIX + "EXTRA_USERNAME",
                                EXTRA_CHATROOM = INTENT_PREFIX + "EXTRA_CHATROOM",
                                EXTRA_PREFIX = INTENT_PREFIX + "EXTRA_PREFIX",
+                               EXTRA_HUB = INTENT_PREFIX + "EXTRA_HUB",
+                               EXTRA_MESSAGE = INTENT_PREFIX + "EXTRA_MESSAGE",
                                EXTRA_ROSTER = INTENT_PREFIX + "EXTRA_ROSTER",
                                BCAST_RECEIVED_MSG = INTENT_PREFIX + "BCAST_RECEIVED_MSG",
                                BCAST_ROSTER = INTENT_PREFIX + "BCAST_ROSTER",
                                ACTION_GET_ROSTER = INTENT_PREFIX + "ACTION_GET_ROSTER",
                                ACTION_SEND = INTENT_PREFIX + "ACTION_SEND";
 
-    private String activeUsername, activeChatroom, activePrefix;
+    private String activeUsername, activeChatroom, activePrefix, activeHub;
 
     private HashMap<String, Integer> roster, rosterAtLastZombieCheck;
 
@@ -48,15 +50,19 @@ public class ChronoChatService extends ChronoSyncService {
             switch(action) {
                 case ACTION_SEND:
                     byte[] message = intent.getByteArrayExtra(EXTRA_MESSAGE);
-                    String prefix = intent.getStringExtra(EXTRA_PREFIX);
+                    String prefix = intent.getStringExtra(EXTRA_PREFIX),
+                           hub = intent.getStringExtra(EXTRA_HUB);
                     if (prefix == null) {
-                        raiseError("ACTION_SEND intent requires prefix",
+                        raiseError("ACTION_SEND intent requires EXTRA_PREFIX",
                                 ErrorCode.OTHER_EXCEPTION);
                     } else if (message == null) {
-                        raiseError("ACTION_SEND intent requires message data",
+                        raiseError("ACTION_SEND intent requires EXTRA_PREFIX",
+                                ErrorCode.OTHER_EXCEPTION);
+                    } else if (hub == null) {
+                        raiseError("ACTION_SEND intent requires EXTRA_HUB",
                                 ErrorCode.OTHER_EXCEPTION);
                     } else {
-                        sendMessage(message, prefix);
+                        sendMessage(message, prefix, hub);
                     }
                     break;
                 case ACTION_GET_ROSTER:
@@ -109,7 +115,7 @@ public class ChronoChatService extends ChronoSyncService {
         super.raiseError(logMessage, code);
     }
 
-    protected void sendMessage(byte[] data, final String prefix) {
+    protected void sendMessage(byte[] data, final String prefix, final String hub) {
 
         ChatMessage message;
         try {
@@ -120,7 +126,7 @@ public class ChronoChatService extends ChronoSyncService {
             return;
         }
 
-        initializeServiceIfNeeded(message, prefix);
+        initializeServiceIfNeeded(message, prefix, hub);
         ChatMessageType type = message.getType();
 
         if (type != ChatMessageType.JOIN) {  // JOIN would be handled by initializeServiceIfNeeded()
@@ -130,18 +136,20 @@ public class ChronoChatService extends ChronoSyncService {
         }
     }
 
-    private void initializeServiceIfNeeded(final ChatMessage message, final String prefix) {
+    private void initializeServiceIfNeeded(final ChatMessage message, final String prefix,
+                                           final String hub) {
 
         final String username = message.getFrom(),
                 chatroom = message.getTo();
 
-        if (activeUsername == null || activeChatroom == null || activePrefix == null ||
+        if (!loginInfoIsSet() ||
                 !activeUsername.equals(username) || !activeChatroom.equals(chatroom) ||
-                !activePrefix.equals(prefix)) {
+                !activePrefix.equals(prefix) || !activeHub.equals(hub)) {
 
             activeUsername = username;
             activeChatroom = chatroom;
             activePrefix = prefix;
+            activeHub = hub;
 
             roster = new HashMap<>();
             roster.put(activeUsername, 0);
@@ -155,12 +163,12 @@ public class ChronoChatService extends ChronoSyncService {
 
             byte[] joinMessage = (message.getType() == ChatMessageType.JOIN) ?
                     message.toByteArray() : getControlMessage(ChatMessageType.JOIN);
-            initializeService(dataPrefix, broadcastPrefix, joinMessage);
+            initializeService(hub, dataPrefix, broadcastPrefix, joinMessage);
         }
     }
 
     private void prepareToLeaveChat() {
-        activeUsername = activeChatroom = activePrefix = null;
+        clearLoginInfo();
         if (heartbeatInterestID != null) {                      // stop heartbeat
             face.removePendingInterest(heartbeatInterestID);
             heartbeatInterestID = null;
@@ -240,6 +248,15 @@ public class ChronoChatService extends ChronoSyncService {
 
     private String getRandomStringForDataPrefix() {
         return UUID.randomUUID().toString();
+    }
+
+    private boolean loginInfoIsSet() {
+        return (activeUsername != null && activeChatroom != null && activePrefix != null &&
+                activeHub != null);
+    }
+
+    private void clearLoginInfo() {
+        activeUsername = activeChatroom = activePrefix = activeHub = null;
     }
 
     private static final OnData DummyOnData = new OnData() {

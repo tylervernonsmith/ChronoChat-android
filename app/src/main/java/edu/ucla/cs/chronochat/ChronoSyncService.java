@@ -41,8 +41,6 @@ public abstract class ChronoSyncService extends Service {
     public static final String
             INTENT_PREFIX = "edu.ucla.cs.ChronoChat." + TAG + ".",
             BCAST_ERROR = INTENT_PREFIX + "BCAST_ERROR",
-            EXTRA_MESSAGE = INTENT_PREFIX + "EXTRA_MESSAGE",
-            EXTRA_DATA_NAME = INTENT_PREFIX + "EXTRA_DATA_NAME",
             EXTRA_ERROR_CODE = INTENT_PREFIX + "EXTRA_ERROR_CODE";
 
     enum ErrorCode { NFD_PROBLEM, OTHER_EXCEPTION }
@@ -102,11 +100,11 @@ public abstract class ChronoSyncService extends Service {
         raiseError(logMessage, code, null);
     }
 
-    protected void initializeService(String dataPrefixStr, String broadcastPrefixStr,
+    protected void initializeService(String hub, String dataPrefixStr, String broadcastPrefixStr,
                                      byte[] initialData) {
         Log.d(TAG, "(re)initializing service...");
         stopNetworkThreadAndBlockUntilDone();
-        face = new Face(getString(R.string.face_uri));
+        face = new Face(hub);
         dataPrefix = new Name(dataPrefixStr);
         broadcastPrefix = new Name(broadcastPrefixStr);
         nextSeqNumToRequest = new HashMap<>();
