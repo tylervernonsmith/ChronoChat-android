@@ -92,7 +92,7 @@ public abstract class ChronoSyncService extends Service {
     protected void raiseError(String logMessage, ErrorCode code, Throwable exception) {
         if (exception == null) Log.e(TAG, logMessage);
         else Log.e(TAG, logMessage, exception);
-        raisedErrorCode = code;
+        if (raisedErrorCode == null) raisedErrorCode = code;
         stopNetworkThread();
     }
 
