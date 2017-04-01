@@ -126,9 +126,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (resultCode != RESULT_OK) {
-            startActivityForResult(new Intent(this, LoginActivity.class), 0);
-        }
+        if (resultCode != RESULT_OK) return;
 
         messageList.clear();
         messageListAdapter.notifyDataSetChanged();
