@@ -51,8 +51,9 @@ public abstract class ChronoSyncService extends Service {
     private Name dataPrefix, broadcastPrefix;
 
     private ChronoSync2013 sync;
-    private boolean networkThreadShouldStop;
-    private boolean syncInitialized = false;
+    private boolean networkThreadShouldStop,
+                    syncInitialized = false;
+    private final boolean shouldRetrieveStaleData;
     private KeyChain keyChain;
     private HashMap<String, Long> nextSeqNumToRequest;
     private ArrayList<byte[]> sentData;
@@ -208,8 +209,8 @@ public abstract class ChronoSyncService extends Service {
             return;
         }
 
-        // FIXME handle recovery states properly (?)
-        if (isRecovery && nextSeqNumToRequest.get(syncDataId) == null) {
+        if (nextSeqNumToRequest.get(syncDataId) == null && !shouldRetrieveStaleData) {
+            Log.d(TAG, "preventing retrieval of stale data");
             nextSeqNumToRequest.put(syncDataId, syncSeqNum + 1); // skip requesting seqnum again
         }
         requestMissingSeqNums(syncDataId, syncSeqNum);
@@ -255,6 +256,14 @@ public abstract class ChronoSyncService extends Service {
 
     private int nextDataSeqNum() { return sentData.size(); }
     private long nextSyncSeqNum() { return sync.getSequenceNo() + 1; }
+
+    public ChronoSyncService() {
+        this(false);
+    }
+
+    public ChronoSyncService(boolean shouldRetrieveStaleData) {
+        this.shouldRetrieveStaleData = shouldRetrieveStaleData;
+    }
 
     @Override
     public void onTaskRemoved(Intent rootIntent) {

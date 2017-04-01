@@ -40,7 +40,6 @@ public class ChronoChatService extends ChronoSyncService {
     private HashMap<String, Integer> roster, rosterAtLastZombieCheck;
     private Long heartbeatInterestID, zombieTimeoutInterestID;
 
-
     @Override
     public void onCreate() {
         Intent notificationIntent = new Intent(this, MainActivity.class);
