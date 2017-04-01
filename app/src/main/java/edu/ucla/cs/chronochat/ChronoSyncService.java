@@ -257,11 +257,16 @@ public abstract class ChronoSyncService extends Service {
     private long nextSyncSeqNum() { return sync.getSequenceNo() + 1; }
 
     @Override
+    public void onTaskRemoved(Intent rootIntent) {
+        stopSelf();
+    }
+
+    @Override
     public void onDestroy() {
         // attempt to clean up after ourselves
         Log.d(TAG, "onDestroy() cleaning up...");
         stopNetworkThreadAndBlockUntilDone();
-        Log.d(TAG, "exiting onDestroy");
+        Log.d(TAG, "service destroyed");
     }
 
     @Override
