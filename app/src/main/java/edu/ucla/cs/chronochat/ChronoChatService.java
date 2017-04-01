@@ -7,8 +7,6 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.NotificationCompat;
 import android.util.Log;
 
-import com.google.protobuf.InvalidProtocolBufferException;
-
 import net.named_data.jndn.Data;
 import net.named_data.jndn.Interest;
 import net.named_data.jndn.Name;
@@ -19,7 +17,6 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.UUID;
 
-import edu.ucla.cs.chronochat.ChatbufProto.ChatMessage;
 import edu.ucla.cs.chronochat.ChatbufProto.ChatMessage.ChatMessageType;
 
 
@@ -109,12 +106,11 @@ public class ChronoChatService extends ChronoSyncService {
         }
 
         byte[] receivedData = data.getContent().getImmutableArray();
-        ChatMessage message;
-        try {
-            message = ChatMessage.parseFrom(receivedData);
-        } catch (InvalidProtocolBufferException e) {
+        ChronoChatMessage message = new ChronoChatMessage(receivedData);
+
+        if (message.getParseError()) {
             raiseError("error receiving message: unable to parse",
-                    ErrorCode.OTHER_EXCEPTION, e);
+                    ErrorCode.OTHER_EXCEPTION);
             return;
         }
 
@@ -141,12 +137,10 @@ public class ChronoChatService extends ChronoSyncService {
 
     protected void sendMessage(byte[] data, final String prefix, final String hub) {
 
-        ChatMessage message;
-        try {
-            message = ChatMessage.parseFrom(data);
-        } catch (InvalidProtocolBufferException e) {
-            raiseError("error sending message: unable to parse",
-                    ErrorCode.OTHER_EXCEPTION, e);
+        ChronoChatMessage message = new ChronoChatMessage(data);
+        if (message.getParseError()) {
+            raiseError("error receiving message: unable to parse",
+                    ErrorCode.OTHER_EXCEPTION);
             return;
         }
 
@@ -160,7 +154,7 @@ public class ChronoChatService extends ChronoSyncService {
         }
     }
 
-    private void initializeServiceIfNeeded(final ChatMessage message, final String prefix,
+    private void initializeServiceIfNeeded(final ChronoChatMessage message, final String prefix,
                                            final String hub) {
 
         final String username = message.getFrom(),
@@ -259,14 +253,8 @@ public class ChronoChatService extends ChronoSyncService {
     }
 
     private byte[] getControlMessage(ChatMessageType type, String from) {
-        int timestamp = (int) (System.currentTimeMillis() / 1000);
-        return ChatMessage.newBuilder()
-                .setFrom(from)
-                .setTo(activeChatroom)
-                .setType(type)
-                .setTimestamp(timestamp)
-                .build()
-                .toByteArray();
+        ChronoChatMessage message = new ChronoChatMessage(from, activeChatroom, type);
+        return message.toByteArray();
     }
 
     private String getRandomStringForDataPrefix() {
