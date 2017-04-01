@@ -1,7 +1,10 @@
 package edu.ucla.cs.chronochat;
 
+import android.app.Notification;
+import android.app.PendingIntent;
 import android.content.Intent;
 import android.support.v4.content.LocalBroadcastManager;
+import android.support.v7.app.NotificationCompat;
 import android.util.Log;
 
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -40,6 +43,23 @@ public class ChronoChatService extends ChronoSyncService {
     private HashMap<String, Integer> roster, rosterAtLastZombieCheck;
 
     Long heartbeatInterestID, zombieTimeoutInterestID;
+
+    @Override
+    public void onCreate() {
+        Intent notificationIntent = new Intent(this, MainActivity.class);
+
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0,
+                notificationIntent, 0);
+
+        Notification notification = new NotificationCompat.Builder(this)
+                .setSmallIcon(R.drawable.notification_icon)
+                .setContentTitle(getText(R.string.service_running))
+                .setContentIntent(pendingIntent)
+                .setPriority(NotificationCompat.PRIORITY_MIN)
+                .build();
+
+        startForeground(MainActivity.SERVICE_NOTIFICATION_ID, notification);
+    }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {

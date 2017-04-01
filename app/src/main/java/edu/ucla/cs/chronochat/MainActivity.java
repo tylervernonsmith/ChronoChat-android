@@ -41,6 +41,7 @@ public class MainActivity extends AppCompatActivity {
 
     // index of username component in data names
     private static final int NOTIFICATION_ID = 0;
+    public static final int SERVICE_NOTIFICATION_ID = 1;
 
     private EditText editMessage;
     private ArrayList<ChatMessage> messageList = new ArrayList<>();
