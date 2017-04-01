@@ -70,16 +70,16 @@ public class MessagesAdapter extends ArrayAdapter<ChronoChatMessage> {
                 messageTextView.setText(message.getData());
                 break;
             case ChatMessageType.JOIN_VALUE:
-                messageTextView.setText("[joined the chat]");
+                messageTextView.setText(R.string.message_join);
                 break;
             case ChatMessageType.LEAVE_VALUE:
-                messageTextView.setText("[left the chat]");
+                messageTextView.setText(R.string.message_leave);
                 break;
             case ChatMessageType.OTHER_VALUE:
-                messageTextView.setText("[OTHER]");
+                messageTextView.setText(R.string.message_other);
                 break;
             default:
-                messageTextView.setText("[unhandled message type]");
+                messageTextView.setText(R.string.message_unhandled);
         }
 
         if (usernameView != null) usernameView.setText(message.getFrom());
