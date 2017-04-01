@@ -6,6 +6,9 @@ import android.util.Log;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 
+import java.text.DateFormat;
+import java.util.Date;
+
 import edu.ucla.cs.chronochat.ChatbufProto.ChatMessage;
 import edu.ucla.cs.chronochat.ChatbufProto.ChatMessage.ChatMessageType;
 
@@ -78,6 +81,13 @@ public class ChronoChatMessage implements Parcelable {
     public int getTimestamp() { return message.getTimestamp(); }
     public boolean getParseError() { return parseError; }
     public byte[] toByteArray() { return message.toByteArray(); }
+
+    public String getTimestampString() {
+        long longTimestamp = (long) getTimestamp();
+        Date date = new Date(longTimestamp * 1000);
+        DateFormat formatter = DateFormat.getTimeInstance();
+        return formatter.format(date);
+    }
 
     /* Parcelable implementation  */
 
