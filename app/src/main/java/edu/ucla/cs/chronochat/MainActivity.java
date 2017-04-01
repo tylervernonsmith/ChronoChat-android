@@ -37,7 +37,8 @@ public class MainActivity extends AppCompatActivity {
                                 SAVED_USERNAME = TAG + ".username",
                                 SAVED_CHATROOM = TAG + ".chatroom",
                                 SAVED_PREFIX = TAG + ".prefix",
-                                SAVED_HUB = TAG + ".hub";
+                                SAVED_HUB = TAG + ".hub",
+                                SAVED_MESSAGES = TAG + ".messages";
 
     // index of username component in data names
     private static final int NOTIFICATION_ID = 0;
@@ -97,11 +98,14 @@ public class MainActivity extends AppCompatActivity {
         registerBroadcastReceiver(broadcastIntentFilter);
 
         if (savedInstanceState != null) {
-            Log.d(TAG, "retrieving login info from saved instance state");
+            Log.d(TAG, "restoring saved instance state");
             setUsername(savedInstanceState.getString(SAVED_USERNAME));
             prefix = savedInstanceState.getString(SAVED_PREFIX);
             setChatroom(savedInstanceState.getString(SAVED_CHATROOM));
             hub = savedInstanceState.getString(SAVED_HUB);
+            ArrayList<ChronoChatMessage> chronoChatMessages =
+                    savedInstanceState.getParcelableArrayList(SAVED_MESSAGES);
+            setMessageList(chronoChatMessages);
         }
     }
 
@@ -157,6 +161,7 @@ public class MainActivity extends AppCompatActivity {
         savedState.putString(SAVED_CHATROOM, chatroom);
         savedState.putString(SAVED_PREFIX, prefix);
         savedState.putString(SAVED_HUB, hub);
+        savedState.putParcelableArrayList(SAVED_MESSAGES, getParcelableMessageList());
         super.onSaveInstanceState(savedState);
     }
 
@@ -334,6 +339,22 @@ public class MainActivity extends AppCompatActivity {
                 .setType(type)
                 .setTimestamp(timestamp)
                 .build();
+    }
+
+    private ArrayList<ChronoChatMessage> getParcelableMessageList() {
+        ArrayList<ChronoChatMessage> chronoChatMessages = new ArrayList<>();
+        for (ChatMessage message : messageList) {
+            chronoChatMessages.add(new ChronoChatMessage(message));
+        }
+        return chronoChatMessages;
+    }
+
+    private void setMessageList(ArrayList<ChronoChatMessage> chronoChatMessages) {
+        messageList.clear();
+        for (ChronoChatMessage parcelable : chronoChatMessages) {
+            messageList.add(parcelable.getMessage());
+        }
+        messageListAdapter.notifyDataSetChanged();
     }
 
     private boolean loginInfoIsSet() {
