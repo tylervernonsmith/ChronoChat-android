@@ -15,8 +15,10 @@ import edu.ucla.cs.chronochat.ChatbufProto.ChatMessage.ChatMessageType;
  */
 public class ChronoChatMessage implements Parcelable {
 
-    private ChatMessage message;
     private static final String TAG = "ChronoChatMessage";
+
+    private ChatMessage message;
+    private boolean parseError = false;
 
 
     public ChronoChatMessage(final ChatMessage fromMessage) {
@@ -44,6 +46,7 @@ public class ChronoChatMessage implements Parcelable {
             Log.e(TAG, "error parsing ChatMessage from Parcel", e);
             setMessage("[unknown user]", "[unknown chatroom]", ChatMessageType.CHAT,
                     "[error parsing message]");
+            parseError = true;
         }
     }
 
@@ -73,8 +76,8 @@ public class ChronoChatMessage implements Parcelable {
     public String getData() { return message.getData(); }
     public ChatMessageType getType() { return message.getType(); }
     public int getTimestamp() { return message.getTimestamp(); }
+    public boolean getParseError() { return parseError; }
     public byte[] toByteArray() { return message.toByteArray(); }
-
 
     /* Parcelable implementation  */
 
