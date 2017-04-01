@@ -297,18 +297,17 @@ public class ChronoChatService extends ChronoSyncService {
 
             for (String user : roster.keySet()) {
 
-                if (user.equals(activeUsername)) continue;
                 Integer currentTimestamp = roster.get(user),
                         lastTimestamp = rosterAtLastZombieCheck.get(user);
 
-                if (currentTimestamp.equals(lastTimestamp)) {
-                    Log.d(TAG, "user '" + user + "' seems to be a zombie");
+                if (!currentTimestamp.equals(lastTimestamp) || user.equals(activeUsername)) {
+                    Log.d(TAG, "'" + user + "' seems alive");
+                    updatedRoster.put(user, currentTimestamp);
+                } else {
+                    Log.d(TAG, "'" + user + "' seems to be a zombie");
                     byte[] leave = getControlMessage(ChatMessageType.LEAVE, user);
                     broadcastReceivedMessage(leave); // create fake LEAVE message for chat log
                     // Note that we're leaving the user out of "updatedRoster"...
-                } else {
-                    Log.d(TAG, "user '" + user + "' seems alive");
-                    updatedRoster.put(user, currentTimestamp);
                 }
             }
 
