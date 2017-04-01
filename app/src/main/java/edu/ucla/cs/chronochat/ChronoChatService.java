@@ -37,10 +37,9 @@ public class ChronoChatService extends ChronoSyncService {
                                ACTION_STOP = INTENT_PREFIX + "ACTION_STOP";
 
     private String activeUsername, activeChatroom, activePrefix, activeHub;
-
     private HashMap<String, Integer> roster, rosterAtLastZombieCheck;
+    private Long heartbeatInterestID, zombieTimeoutInterestID;
 
-    Long heartbeatInterestID, zombieTimeoutInterestID;
 
     @Override
     public void onCreate() {
