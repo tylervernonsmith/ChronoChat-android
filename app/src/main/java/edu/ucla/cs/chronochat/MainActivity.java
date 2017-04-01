@@ -120,6 +120,12 @@ public class MainActivity extends AppCompatActivity {
         activityVisible = false;
     }
 
+    @Override
+    public void onBackPressed() {
+        // don't destroy the activity when "back" is pressed, just hide the application
+        moveTaskToBack(true);
+    }
+
     private void getLoginInfo() {
         clearLoginInfo();
         startActivityForResult(new Intent(this, LoginActivity.class), 0);
