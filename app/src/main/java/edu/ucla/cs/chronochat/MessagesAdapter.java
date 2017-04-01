@@ -1,24 +1,16 @@
 package edu.ucla.cs.chronochat;
 
 import android.content.Context;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.TextView;
 
-import com.google.protobuf.InvalidProtocolBufferException;
-
 import java.util.ArrayList;
 
-import edu.ucla.cs.chronochat.ChatbufProto.ChatMessage;
 import edu.ucla.cs.chronochat.ChatbufProto.ChatMessage.ChatMessageType;
 
-
-/**
- * Created by tvsmith on 3/12/17.
- */
 
 public class MessagesAdapter extends ArrayAdapter<ChronoChatMessage> {
 
