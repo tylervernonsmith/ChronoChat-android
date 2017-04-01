@@ -97,6 +97,7 @@ public class MainActivity extends AppCompatActivity {
         registerBroadcastReceiver(broadcastIntentFilter);
 
         if (savedInstanceState != null) {
+            Log.d(TAG, "retrieving login info from saved instance state");
             setUsername(savedInstanceState.getString(SAVED_USERNAME));
             prefix = savedInstanceState.getString(SAVED_PREFIX);
             setChatroom(savedInstanceState.getString(SAVED_CHATROOM));
@@ -149,6 +150,7 @@ public class MainActivity extends AppCompatActivity {
         savedState.putString(SAVED_USERNAME, username);
         savedState.putString(SAVED_CHATROOM, chatroom);
         savedState.putString(SAVED_PREFIX, prefix);
+        savedState.putString(SAVED_HUB, hub);
         super.onSaveInstanceState(savedState);
     }
 
