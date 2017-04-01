@@ -36,7 +36,8 @@ public class ChronoChatService extends ChronoSyncService {
                                BCAST_RECEIVED_MSG = INTENT_PREFIX + "BCAST_RECEIVED_MSG",
                                BCAST_ROSTER = INTENT_PREFIX + "BCAST_ROSTER",
                                ACTION_GET_ROSTER = INTENT_PREFIX + "ACTION_GET_ROSTER",
-                               ACTION_SEND = INTENT_PREFIX + "ACTION_SEND";
+                               ACTION_SEND = INTENT_PREFIX + "ACTION_SEND",
+                               ACTION_STOP = INTENT_PREFIX + "ACTION_STOP";
 
     private String activeUsername, activeChatroom, activePrefix, activeHub;
 
@@ -87,6 +88,9 @@ public class ChronoChatService extends ChronoSyncService {
                     break;
                 case ACTION_GET_ROSTER:
                     broadcastRoster();
+                    break;
+                case ACTION_STOP:
+                    stopSelf();
                     break;
             }
         }

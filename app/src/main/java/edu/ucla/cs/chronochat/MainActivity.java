@@ -170,6 +170,9 @@ public class MainActivity extends AppCompatActivity {
             case R.id.action_show_roster:
                 requestRoster();
                 return true;
+            case R.id.action_quit:
+                quitApplication();
+                return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
@@ -293,11 +296,17 @@ public class MainActivity extends AppCompatActivity {
             getLoginInfo();
     }
 
-
     private void leaveChatroom() {
         ChatMessage leave = encodeMessage(username, chatroom, ChatMessageType.LEAVE);
         sendMessage(leave);
         getLoginInfo();
+    }
+
+    private void quitApplication() {
+        Intent request = new Intent(this, ChronoChatService.class);
+        request.setAction(ChronoChatService.ACTION_STOP);
+        startService(request);
+        finish();
     }
 
     private ChatMessage encodeMessage(String username, String chatroom, ChatMessageType type) {
