@@ -22,12 +22,9 @@ import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Toast;
 
-import com.google.protobuf.InvalidProtocolBufferException;
-
 import java.util.ArrayList;
 
 import edu.ucla.cs.chronochat.ChronoSyncService.ErrorCode;
-import edu.ucla.cs.chronochat.ChatbufProto.ChatMessage;
 import edu.ucla.cs.chronochat.ChatbufProto.ChatMessage.ChatMessageType;
 
 
@@ -45,7 +42,7 @@ public class MainActivity extends AppCompatActivity {
     public static final int SERVICE_NOTIFICATION_ID = 1;
 
     private EditText editMessage;
-    private ArrayList<ChatMessage> messageList = new ArrayList<>();
+    private ArrayList<ChronoChatMessage> messageList = new ArrayList<>();
     private MessagesAdapter messageListAdapter;
 
     private String username, chatroom, prefix, hub;
@@ -93,10 +90,10 @@ public class MainActivity extends AppCompatActivity {
         editMessage = (EditText) findViewById(R.id.edit_message);
         ListView messageView = (ListView) findViewById(R.id.message_view);
 
+        registerBroadcastReceiver();
+
         messageListAdapter = new MessagesAdapter(this, messageList);
         messageView.setAdapter(messageListAdapter);
-
-        registerBroadcastReceiver();
 
         if (savedInstanceState != null) {
             Log.d(TAG, "restoring saved instance state");
@@ -104,9 +101,9 @@ public class MainActivity extends AppCompatActivity {
             prefix = savedInstanceState.getString(SAVED_PREFIX);
             setChatroom(savedInstanceState.getString(SAVED_CHATROOM));
             hub = savedInstanceState.getString(SAVED_HUB);
-            ArrayList<ChronoChatMessage> chronoChatMessages =
+            ArrayList<ChronoChatMessage> savedMessages =
                     savedInstanceState.getParcelableArrayList(SAVED_MESSAGES);
-            setMessageList(chronoChatMessages);
+            messageListAdapter.addAll(savedMessages);
         }
     }
 
@@ -153,7 +150,7 @@ public class MainActivity extends AppCompatActivity {
         setChatroom(data.getStringExtra(ChronoChatService.EXTRA_CHATROOM));
         hub = data.getStringExtra(ChronoChatService.EXTRA_HUB);
 
-        ChatMessage join = encodeMessage(username, chatroom, ChatMessageType.JOIN);
+        ChronoChatMessage join = new ChronoChatMessage(username, chatroom, ChatMessageType.JOIN);
         sendMessage(join);
     }
 
@@ -168,7 +165,7 @@ public class MainActivity extends AppCompatActivity {
         savedState.putString(SAVED_CHATROOM, chatroom);
         savedState.putString(SAVED_PREFIX, prefix);
         savedState.putString(SAVED_HUB, hub);
-        savedState.putParcelableArrayList(SAVED_MESSAGES, getParcelableMessageList());
+        savedState.putParcelableArrayList(SAVED_MESSAGES, messageList);
         super.onSaveInstanceState(savedState);
     }
 
@@ -217,11 +214,12 @@ public class MainActivity extends AppCompatActivity {
         if (text.equals("")) return;
         messageField.clear();
 
-        ChatMessage message = encodeMessage(username, chatroom, ChatMessageType.CHAT, text);
+        ChronoChatMessage message = new ChronoChatMessage(username, chatroom, ChatMessageType.CHAT,
+                text);
         sendMessage(message);
     }
 
-    private void sendMessage(ChatMessage message) {
+    private void sendMessage(ChronoChatMessage message) {
         messageListAdapter.addMessageToView(message);
         Intent intent = new Intent(this, ChronoChatService.class);
         intent.setAction(ChronoChatService.ACTION_SEND)
@@ -233,20 +231,14 @@ public class MainActivity extends AppCompatActivity {
 
     private void handleReceivedMessage(Intent intent) {
         byte[] encodedMessage = intent.getByteArrayExtra(ChronoChatService.EXTRA_MESSAGE);
-        ChatMessage message;
-        try {
-            message = ChatMessage.parseFrom(encodedMessage);
-        } catch (InvalidProtocolBufferException e) {
-            message = encodeMessage("[unknown user]", chatroom, ChatMessageType.CHAT,
-                    "[error parsing message]");
-        }
+        ChronoChatMessage message = new ChronoChatMessage(encodedMessage);
         Log.d(TAG, "received message from " + message.getFrom());
         showNotification(message);
         messageListAdapter.addMessageToView(message);
     }
 
 
-    private void showNotification(ChatMessage message) {
+    private void showNotification(ChronoChatMessage message) {
 
         if (activityVisible) return;
 
@@ -315,7 +307,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void leaveChatroom() {
-        ChatMessage leave = encodeMessage(username, chatroom, ChatMessageType.LEAVE);
+        ChronoChatMessage leave = new ChronoChatMessage(username, chatroom, ChatMessageType.LEAVE);
         sendMessage(leave);
         getLoginInfo();
     }
@@ -325,43 +317,6 @@ public class MainActivity extends AppCompatActivity {
         request.setAction(ChronoChatService.ACTION_STOP);
         startService(request);
         finish();
-    }
-
-    private ChatMessage encodeMessage(String username, String chatroom, ChatMessageType type) {
-        return encodeMessage(username, chatroom, type, "");
-    }
-
-    private ChatMessage encodeMessage(String username, String chatroom, ChatMessageType type,
-                                      String text) {
-        int timestamp = (int) (System.currentTimeMillis() / 1000);
-        return encodeMessage(username, chatroom, type, text, timestamp);
-    }
-
-    private ChatMessage encodeMessage(String username, String chatroom, ChatMessageType type,
-                                      String message, int timestamp) {
-        return  ChatMessage.newBuilder()
-                .setFrom(username)
-                .setTo(chatroom)
-                .setData(message)
-                .setType(type)
-                .setTimestamp(timestamp)
-                .build();
-    }
-
-    private ArrayList<ChronoChatMessage> getParcelableMessageList() {
-        ArrayList<ChronoChatMessage> chronoChatMessages = new ArrayList<>();
-        for (ChatMessage message : messageList) {
-            chronoChatMessages.add(new ChronoChatMessage(message));
-        }
-        return chronoChatMessages;
-    }
-
-    private void setMessageList(ArrayList<ChronoChatMessage> chronoChatMessages) {
-        messageList.clear();
-        for (ChronoChatMessage parcelable : chronoChatMessages) {
-            messageList.add(parcelable.getMessage());
-        }
-        messageListAdapter.notifyDataSetChanged();
     }
 
     private boolean loginInfoIsSet() {

@@ -20,7 +20,7 @@ import edu.ucla.cs.chronochat.ChatbufProto.ChatMessage.ChatMessageType;
  * Created by tvsmith on 3/12/17.
  */
 
-public class MessagesAdapter extends ArrayAdapter<ChatMessage> {
+public class MessagesAdapter extends ArrayAdapter<ChronoChatMessage> {
 
     private String loggedInUsername;
     private static final String TAG = "MessagesAdapter";
@@ -34,7 +34,7 @@ public class MessagesAdapter extends ArrayAdapter<ChatMessage> {
         TextView usernameView, messageTextView;
     }
 
-    public MessagesAdapter(Context context, ArrayList<ChatMessage> messages) {
+    public MessagesAdapter(Context context, ArrayList<ChronoChatMessage> messages) {
         super(context, 0, messages);
     }
 
@@ -45,10 +45,10 @@ public class MessagesAdapter extends ArrayAdapter<ChatMessage> {
 
     @Override
     public int getItemViewType(int position) {
-        ChatMessage thisMessage = getItem(position);
+        ChronoChatMessage thisMessage = getItem(position);
         boolean sent = thisMessage.getFrom().equals(loggedInUsername);
         if (position > 0) {
-            ChatMessage previousMessage = getItem(position - 1);
+            ChronoChatMessage previousMessage = getItem(position - 1);
             if (thisMessage.getFrom().equals(previousMessage.getFrom()))
                 return (sent ? TYPE_SENT_MESSAGE_ONLY : TYPE_RECEIVED_MESSAGE_ONLY);
         }
@@ -57,7 +57,7 @@ public class MessagesAdapter extends ArrayAdapter<ChatMessage> {
 
     @Override
     public View getView(int position, View view, ViewGroup parent) {
-        ChatMessage message = getItem(position);
+        ChronoChatMessage message = getItem(position);
         ViewHolder viewHolder;
 
         if (view == null) {
@@ -116,7 +116,7 @@ public class MessagesAdapter extends ArrayAdapter<ChatMessage> {
 
     public void setLoggedInUsername(String username) { loggedInUsername = username; }
 
-    public void addMessageToView(ChatMessage message) {
+    public void addMessageToView(ChronoChatMessage message) {
         if (message.getType() == ChatMessageType.HELLO) return;
         add(message);
         notifyDataSetChanged();

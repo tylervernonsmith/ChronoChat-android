@@ -9,6 +9,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import edu.ucla.cs.chronochat.ChatbufProto.ChatMessage;
 import edu.ucla.cs.chronochat.ChatbufProto.ChatMessage.ChatMessageType;
 
+
 /* Wrapper Parcelable class for ChatMessage. Probably would have been nicer to extend ChatMessage
  *   but the Protobuf document warns against inheriting from generated message classes.
  */
@@ -17,29 +18,71 @@ public class ChronoChatMessage implements Parcelable {
     private ChatMessage message;
     private static final String TAG = "ChronoChatMessage";
 
-    public ChatMessage getMessage() { return message; }
 
     public ChronoChatMessage(final ChatMessage fromMessage) {
         message = fromMessage;
     }
 
+    public ChronoChatMessage(String username, String chatroom, ChatMessageType type,
+                             String data) {
+        setMessage(username, chatroom, type, data);
+    }
+
+    public ChronoChatMessage(String username, String chatroom, ChatMessageType type) {
+        setMessage(username, chatroom, type);
+    }
+
+    public ChronoChatMessage(byte[] encodedMessage) {
+        setMessage(encodedMessage);
+    }
+
+
+    private void setMessage(byte[] encodedMessage) {
+        try {
+            message = ChatMessage.parseFrom(encodedMessage);
+        } catch (InvalidProtocolBufferException e) {
+            Log.e(TAG, "error parsing ChatMessage from Parcel", e);
+            setMessage("[unknown user]", "[unknown chatroom]", ChatMessageType.CHAT,
+                    "[error parsing message]");
+        }
+    }
+
+    private void setMessage(String username, String chatroom, ChatMessageType type,
+                            String data, int timestamp) {
+        message = ChatMessage.newBuilder()
+                    .setFrom(username)
+                    .setTo(chatroom)
+                    .setData(data)
+                    .setType(type)
+                    .setTimestamp(timestamp)
+                    .build();
+    }
+
+    private void setMessage(String username, String chatroom, ChatMessageType type,
+                            String data) {
+        int currentTimeSeconds = (int) (System.currentTimeMillis() / 1000);
+        setMessage(username, chatroom, type, data, currentTimeSeconds);
+    }
+
+    private void setMessage(String username, String chatroom, ChatMessageType type) {
+        setMessage(username, chatroom, type, "");
+    }
+
+    public String getFrom() { return message.getFrom(); }
+    public String getTo() { return message.getTo(); }
+    public String getData() { return message.getData(); }
+    public ChatMessageType getType() { return message.getType(); }
+    public int getTimestamp() { return message.getTimestamp(); }
+    public byte[] toByteArray() { return message.toByteArray(); }
+
+
+    /* Parcelable implementation  */
+
     protected ChronoChatMessage(Parcel in) {
         int arrayLength = in.readInt();
         byte[] messageBytes = new byte[arrayLength];
         in.readByteArray(messageBytes);
-        try {
-            message = ChatMessage.parseFrom(messageBytes);
-        } catch (InvalidProtocolBufferException e) {
-            Log.e(TAG, "error parsing ChatMessage from Parcel", e);
-            int timestamp = (int) (System.currentTimeMillis() / 1000);
-            message = ChatMessage.newBuilder()
-                        .setFrom("[unknown user]")
-                        .setTo("[unknown chatroom]")
-                        .setData("[error parsing message]")
-                        .setType(ChatMessageType.CHAT)
-                        .setTimestamp(timestamp)
-                        .build();
-        }
+        setMessage(messageBytes);
     }
 
     @Override
