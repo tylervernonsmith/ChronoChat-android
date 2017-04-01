@@ -71,9 +71,14 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private final LocalBroadcastReceiver broadcastReceiver = new LocalBroadcastReceiver();
+    private LocalBroadcastReceiver broadcastReceiver;
 
-    protected void registerBroadcastReceiver(IntentFilter intentFilter) {
+    private void registerBroadcastReceiver() {
+        broadcastReceiver = new LocalBroadcastReceiver();
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(ChronoSyncService.BCAST_ERROR);
+        intentFilter.addAction(ChronoChatService.BCAST_RECEIVED_MSG);
+        intentFilter.addAction(ChronoChatService.BCAST_ROSTER);
         LocalBroadcastManager.getInstance(this).registerReceiver(
                 broadcastReceiver,
                 intentFilter);
@@ -91,11 +96,7 @@ public class MainActivity extends AppCompatActivity {
         messageListAdapter = new MessagesAdapter(this, messageList);
         messageView.setAdapter(messageListAdapter);
 
-        IntentFilter broadcastIntentFilter = new IntentFilter();
-        broadcastIntentFilter.addAction(ChronoSyncService.BCAST_ERROR);
-        broadcastIntentFilter.addAction(ChronoChatService.BCAST_RECEIVED_MSG);
-        broadcastIntentFilter.addAction(ChronoChatService.BCAST_ROSTER);
-        registerBroadcastReceiver(broadcastIntentFilter);
+        registerBroadcastReceiver();
 
         if (savedInstanceState != null) {
             Log.d(TAG, "restoring saved instance state");
@@ -122,6 +123,12 @@ public class MainActivity extends AppCompatActivity {
     public void onStop() {
         super.onStop();
         activityVisible = false;
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastReceiver);
     }
 
     @Override
