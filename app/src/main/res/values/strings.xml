@@ -16,8 +16,8 @@
     <string name="error_nfd">ChronoChat is having trouble communicating with the NDN system. Please check your hub URI, or ensure NFD is running if using "localhost".</string>
     <string name="error_other">Sorry, a ChronoChat error has occurred. Please check the debug log.</string>
     <string name="service_running">ChronoChat network service is running</string>
-    <string name="message_join">[joined the chat]</string>
-    <string name="message_leave">[left the chat]</string>
-    <string name="message_other">[OTHER]</string>
-    <string name="message_unhandled">[unhandled message type]</string>
+    <string name="message_join">(joined the chat)</string>
+    <string name="message_leave">(left the chat)</string>
+    <string name="message_other">(OTHER)</string>
+    <string name="message_unhandled">(unhandled message type)</string>
 </resources>
