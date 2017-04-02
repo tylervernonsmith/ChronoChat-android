@@ -53,9 +53,10 @@ public abstract class ChronoSyncService extends Service {
     private ChronoSync2013 sync;
     private boolean networkThreadShouldStop,
                     syncInitialized = false;
-    private final boolean shouldRetrieveStaleData;
+    private final boolean shouldRetrieveStaleData, shouldEnsureInOrderDelivery;
     private KeyChain keyChain;
-    private HashMap<String, Long> nextSeqNumToRequest;
+    private HashMap<String, Long> nextSeqNumToRequest, lastSeqNumDelivered;
+    private HashMap<String, HashMap<Long, Data>> dataForDelivery;
     private ArrayList<byte[]> sentData;
     private int session;
 
@@ -109,6 +110,8 @@ public abstract class ChronoSyncService extends Service {
         dataPrefix = new Name(dataPrefixStr);
         broadcastPrefix = new Name(broadcastPrefixStr);
         nextSeqNumToRequest = new HashMap<>();
+        lastSeqNumDelivered = new HashMap<>();
+        dataForDelivery = new HashMap<>();
         sentData = new ArrayList<>();
         session = (int) (System.currentTimeMillis() / 1000);
         send(initialData);
@@ -258,11 +261,12 @@ public abstract class ChronoSyncService extends Service {
     private long nextSyncSeqNum() { return sync.getSequenceNo() + 1; }
 
     public ChronoSyncService() {
-        this(false);
+        this(false, true);
     }
 
-    public ChronoSyncService(boolean shouldRetrieveStaleData) {
+    public ChronoSyncService(boolean shouldRetrieveStaleData, boolean shouldEnsureInOrderDelivery) {
         this.shouldRetrieveStaleData = shouldRetrieveStaleData;
+        this.shouldEnsureInOrderDelivery = shouldEnsureInOrderDelivery;
     }
 
     @Override
@@ -391,11 +395,46 @@ public abstract class ChronoSyncService extends Service {
     private final OnData OnReceivedSyncData = new OnData() {
         @Override
         public void onData(Interest interest, Data data) {
-            String dataName = interest.getName().toString();
-            Log.d(TAG, "received sync data for " + dataName);
-            handleReceivedApplicationData(data);
+            Name dataName = data.getName();
+            Log.d(TAG, "received sync data for " + dataName.toString());
+
+            deliverDataAsNeeded(data);
         }
     };
+
+    private void deliverDataAsNeeded(Data data) {
+
+        Name dataName = data.getName();
+        String syncDataId = dataName.getPrefix(-1).toString();
+        Name.Component seqNumComponent = dataName.get(-1);
+        Long seqNum = Long.parseLong(seqNumComponent.toEscapedString());
+
+        if (!shouldEnsureInOrderDelivery || lastSeqNumDelivered.get(syncDataId) == null) {
+            deliverApplicationData(data, syncDataId, seqNum);
+        }
+
+        HashMap<Long, Data> cachedData = dataForDelivery.get(syncDataId);
+        if (cachedData == null) {
+            cachedData = new HashMap<>();
+            dataForDelivery.put(syncDataId, cachedData);
+        }
+        cachedData.put(seqNum, data);
+
+        Data dataToDeliver;
+        do {
+            Long lastSeqNum = lastSeqNumDelivered.get(syncDataId);
+            Long nextSeqNum = lastSeqNum + 1;
+            dataToDeliver = cachedData.remove(nextSeqNum);
+            if (dataToDeliver != null)
+                deliverApplicationData(data, syncDataId, nextSeqNum);
+        } while (dataToDeliver != null);
+    }
+
+    private void deliverApplicationData(Data data, String syncDataId, Long seqNum) {
+        Log.d(TAG, "delivering " + data.getName().toString() + " to application");
+        lastSeqNumDelivered.put(syncDataId, seqNum);
+        handleReceivedApplicationData(data);
+    }
 
     protected abstract void handleReceivedApplicationData(Data data);
 
