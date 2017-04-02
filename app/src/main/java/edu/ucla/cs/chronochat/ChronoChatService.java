@@ -50,8 +50,9 @@ public class ChronoChatService extends ChronoSyncService {
 
         Notification notification = new NotificationCompat.Builder(this)
                 .setSmallIcon(R.drawable.notification_icon)
-                .setContentTitle(getText(R.string.service_running))
+                .setContentTitle(getText(R.string.service_notification_title))
                 .setContentIntent(pendingIntent)
+                .setContentText(getString(R.string.service_notification_text))
                 .setColor(ContextCompat.getColor(getApplicationContext(),
                         R.color.colorPrimary))
                 .setPriority(NotificationCompat.PRIORITY_MIN)
