@@ -1,12 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<menu xmlns:android="http://schemas.android.com/apk/res/android">
-    <item
-        android:id="@+id/action_show_roster"
-        android:title="@string/action_show_roster"
-        />
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+      xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
         android:id="@+id/action_leave"
+        android:icon="@drawable/leave_chatroom_icon"
         android:title="@string/action_leave"
+        app:showAsAction="ifRoom"
+        />
+    <item
+        android:id="@+id/action_show_roster"
+        android:icon="@drawable/roster_icon"
+        android:title="@string/action_show_roster"
+        app:showAsAction="ifRoom"
         />
     <item
         android:id="@+id/action_quit"

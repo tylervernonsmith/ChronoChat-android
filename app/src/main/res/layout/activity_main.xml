@@ -15,7 +15,7 @@
         android:layout_alignParentRight="true"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:src="@drawable/ic_send_black_24dp"
+        android:src="@drawable/send_icon"
         android:backgroundTint="@color/colorPrimary"
         android:onClick="sendMessage"/>
     <EditText android:id="@+id/edit_message"
