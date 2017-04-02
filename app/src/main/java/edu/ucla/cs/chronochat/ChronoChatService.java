@@ -3,6 +3,7 @@ package edu.ucla.cs.chronochat;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.content.Intent;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.NotificationCompat;
 import android.util.Log;
@@ -51,6 +52,8 @@ public class ChronoChatService extends ChronoSyncService {
                 .setSmallIcon(R.drawable.notification_icon)
                 .setContentTitle(getText(R.string.service_running))
                 .setContentIntent(pendingIntent)
+                .setColor(ContextCompat.getColor(getApplicationContext(),
+                        R.color.colorPrimary))
                 .setPriority(NotificationCompat.PRIORITY_MIN)
                 .build();
 

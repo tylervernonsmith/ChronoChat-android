@@ -7,6 +7,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
@@ -255,6 +256,8 @@ public class MainActivity extends AppCompatActivity {
                         .setSmallIcon(R.drawable.notification_icon)
                         .setContentTitle(from)
                         .setContentText(text)
+                        .setColor(ContextCompat.getColor(getApplicationContext(),
+                                R.color.colorPrimary))
                         .setDefaults(Notification.DEFAULT_SOUND|Notification.DEFAULT_LIGHTS);
 
         // FIXME is this done right?
