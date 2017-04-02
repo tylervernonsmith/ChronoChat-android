@@ -391,11 +391,13 @@ public abstract class ChronoSyncService extends Service {
     private final OnData OnReceivedSyncData = new OnData() {
         @Override
         public void onData(Interest interest, Data data) {
-            onReceivedSyncData(interest, data);
+            String dataName = interest.getName().toString();
+            Log.d(TAG, "received sync data for " + dataName);
+            handleReceivedApplicationData(data);
         }
     };
 
-    protected abstract void onReceivedSyncData(Interest interest, Data data);
+    protected abstract void handleReceivedApplicationData(Data data);
 
     private final OnTimeout OnSyncDataInterestTimeout = new OnTimeout() {
         @Override

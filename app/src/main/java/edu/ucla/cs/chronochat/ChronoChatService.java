@@ -98,10 +98,7 @@ public class ChronoChatService extends ChronoSyncService {
     }
 
     @Override
-    protected void onReceivedSyncData(Interest interest, Data data) {
-
-        String dataName = interest.getName().toString();
-        Log.d(TAG, "received sync data for " + dataName);
+    protected void handleReceivedApplicationData(Data data) {
         if (activeUsername == null) {
             Log.d(TAG, "ignoring sync data because we are logged out");
             return;
