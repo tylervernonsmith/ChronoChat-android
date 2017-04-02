@@ -55,8 +55,9 @@ public abstract class ChronoSyncService extends Service {
                     syncInitialized = false;
     private final boolean shouldRetrieveStaleData, shouldEnsureInOrderDelivery;
     private KeyChain keyChain;
-    private HashMap<String, Long> nextSeqNumToRequest, lastSeqNumDelivered;
-    private HashMap<String, HashMap<Long, Data>> dataForDelivery;
+    private HashMap<String, Long> nextSeqNumToRequest;
+    private HashMap<Name, Long> lastSeqNumDelivered;
+    private HashMap<Name, byte[]> receivedDataCache;
     private ArrayList<byte[]> sentData;
     private int session;
 
@@ -111,7 +112,7 @@ public abstract class ChronoSyncService extends Service {
         broadcastPrefix = new Name(broadcastPrefixStr);
         nextSeqNumToRequest = new HashMap<>();
         lastSeqNumDelivered = new HashMap<>();
-        dataForDelivery = new HashMap<>();
+        receivedDataCache = new HashMap<>();
         sentData = new ArrayList<>();
         session = (int) (System.currentTimeMillis() / 1000);
         send(initialData);
@@ -309,6 +310,41 @@ public abstract class ChronoSyncService extends Service {
         LocalBroadcastManager.getInstance(ChronoSyncService.this).sendBroadcast(bcast);
     }
 
+    private void processReceivedData(Name name, byte[] content) {
+        Name syncDataId = name.getPrefix(-1);
+        Name.Component seqNumComponent = name.get(-1);
+        Long seqNum = Long.parseLong(seqNumComponent.toEscapedString());
+
+        if (shouldEnsureInOrderDelivery) {
+            receivedDataCache.put(name, content);
+            deliverApplicationDataInOrder(syncDataId, seqNum);
+        } else {
+            deliverApplicationData(content, syncDataId, seqNum);
+        }
+    }
+
+    private void deliverApplicationDataInOrder(Name syncDataId, Long lastSeqNumCached) {
+        byte[] nextData;
+        do {
+            Long lastSeqNum = lastSeqNumDelivered.get(syncDataId),
+                    nextSeqNum = (lastSeqNum == null) ? lastSeqNumCached : lastSeqNum + 1;
+            Name nextDataName = (new Name(syncDataId)).append(nextSeqNum.toString());
+            nextData = receivedDataCache.remove(nextDataName);
+            if (nextData != null)
+                deliverApplicationData(nextData, syncDataId, nextSeqNum);
+        } while (nextData != null);
+    }
+
+    private void deliverApplicationData(byte[] data, Name syncDataId, Long seqNum) {
+        Name dataName = (new Name(syncDataId)).append(seqNum.toString());
+        Log.d(TAG, "delivering " + dataName + " to application");
+        if (shouldEnsureInOrderDelivery)
+            lastSeqNumDelivered.put(syncDataId, seqNum);
+        handleApplicationData(data);
+    }
+
+    protected abstract void handleApplicationData(byte[] receivedData);
+
 
     /***** Callbacks for NDN network thread *****/
 
@@ -395,48 +431,12 @@ public abstract class ChronoSyncService extends Service {
     private final OnData OnReceivedSyncData = new OnData() {
         @Override
         public void onData(Interest interest, Data data) {
-            Name dataName = data.getName();
-            Log.d(TAG, "received sync data for " + dataName.toString());
-
-            deliverDataAsNeeded(data);
+            Name name = data.getName();
+            byte[] content = data.getContent().getImmutableArray();
+            Log.d(TAG, "received sync data for " + name);
+            processReceivedData(name, content);
         }
     };
-
-    private void deliverDataAsNeeded(Data data) {
-
-        Name dataName = data.getName();
-        String syncDataId = dataName.getPrefix(-1).toString();
-        Name.Component seqNumComponent = dataName.get(-1);
-        Long seqNum = Long.parseLong(seqNumComponent.toEscapedString());
-
-        if (!shouldEnsureInOrderDelivery || lastSeqNumDelivered.get(syncDataId) == null) {
-            deliverApplicationData(data, syncDataId, seqNum);
-        }
-
-        HashMap<Long, Data> cachedData = dataForDelivery.get(syncDataId);
-        if (cachedData == null) {
-            cachedData = new HashMap<>();
-            dataForDelivery.put(syncDataId, cachedData);
-        }
-        cachedData.put(seqNum, data);
-
-        Data dataToDeliver;
-        do {
-            Long lastSeqNum = lastSeqNumDelivered.get(syncDataId);
-            Long nextSeqNum = lastSeqNum + 1;
-            dataToDeliver = cachedData.remove(nextSeqNum);
-            if (dataToDeliver != null)
-                deliverApplicationData(data, syncDataId, nextSeqNum);
-        } while (dataToDeliver != null);
-    }
-
-    private void deliverApplicationData(Data data, String syncDataId, Long seqNum) {
-        Log.d(TAG, "delivering " + data.getName().toString() + " to application");
-        lastSeqNumDelivered.put(syncDataId, seqNum);
-        handleReceivedApplicationData(data);
-    }
-
-    protected abstract void handleReceivedApplicationData(Data data);
 
     private final OnTimeout OnSyncDataInterestTimeout = new OnTimeout() {
         @Override
