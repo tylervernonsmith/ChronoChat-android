@@ -141,7 +141,10 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (resultCode != RESULT_OK) return;
+        if (resultCode != RESULT_OK) {
+            quitApplication();
+            return;
+        }
 
         messageList.clear();
         messageListAdapter.notifyDataSetChanged();
