@@ -316,6 +316,7 @@ public abstract class ChronoSyncService extends Service {
         Long seqNum = Long.parseLong(seqNumComponent.toEscapedString());
 
         if (shouldEnsureInOrderDelivery) {
+            Log.d(TAG, "caching " + name);
             receivedDataCache.put(name, content);
             deliverApplicationDataInOrder(syncDataId, seqNum);
         } else {
