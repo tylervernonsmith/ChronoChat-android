@@ -65,7 +65,7 @@ public class MessagesAdapter extends ArrayAdapter<ChronoChatMessage> {
         TextView usernameView = viewHolder.usernameView,
                  messageTextView = viewHolder.messageTextView;
 
-        messageTextView.setText(message.getTimestampString() + " - ");
+        messageTextView.setText(message.getTimestampString() + ": ");
         switch (message.getType().getNumber()) {
             case ChatMessageType.CHAT_VALUE:
                 messageTextView.append(message.getData());
