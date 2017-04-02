@@ -106,6 +106,12 @@ public class MainActivity extends AppCompatActivity {
                     savedInstanceState.getParcelableArrayList(SAVED_MESSAGES);
             messageListAdapter.addAll(savedMessages);
         }
+
+        ActionBar actionBar = getSupportActionBar();
+        if (actionBar != null) {
+            actionBar.setDisplayHomeAsUpEnabled(true);
+            actionBar.setDisplayShowHomeEnabled(true);
+        }
     }
 
     @Override
@@ -183,7 +189,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
-            case R.id.action_leave:
+            case android.R.id.home:
                 leaveChatroom();
                 return true;
             case R.id.action_show_roster:
