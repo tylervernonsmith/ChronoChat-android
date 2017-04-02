@@ -30,11 +30,12 @@
     </style>
 
     <style name="MessageTextView.Sent">
-        <item name="android:gravity">right</item>
+        <item name="android:gravity">left</item>
     </style>
 
     <style name="MessageTextView.Sent.Username">
         <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/colorPrimary</item>
     </style>
 
     <style name="MessageTextView.Received">
