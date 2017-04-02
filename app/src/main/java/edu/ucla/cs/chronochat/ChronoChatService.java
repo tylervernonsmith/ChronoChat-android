@@ -100,7 +100,7 @@ public class ChronoChatService extends ChronoSyncService {
     @Override
     protected void handleReceivedApplicationData(Data data) {
         if (activeUsername == null) {
-            Log.d(TAG, "ignoring sync data because we are logged out");
+            Log.d(TAG, "ignoring received message because we are logged out");
             return;
         }
 
@@ -138,7 +138,7 @@ public class ChronoChatService extends ChronoSyncService {
 
         ChronoChatMessage message = new ChronoChatMessage(data);
         if (message.getParseError()) {
-            raiseError("error receiving message: unable to parse",
+            raiseError("error sending message: unable to parse",
                     ErrorCode.OTHER_EXCEPTION);
             return;
         }
