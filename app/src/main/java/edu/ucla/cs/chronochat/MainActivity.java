@@ -49,7 +49,7 @@ public class MainActivity extends AppCompatActivity {
                     showRoster(roster);
                     break;
                 case ConnectivityManager.CONNECTIVITY_ACTION:
-                    handleNetworkChange();
+                    handleNetworkChange(intent);
                     break;
             }
         }
@@ -326,10 +326,16 @@ public class MainActivity extends AppCompatActivity {
         dialog.show(getFragmentManager(), "RosterDialogFragment");
     }
 
-    private void handleNetworkChange() {
+    private void handleNetworkChange(Intent intent) {
         Log.d(TAG, "network change detected");
         if (loginInfoIsSet() && chatroomLeftOnError) {
-            joinChatroom();
+            if (intent == null ||
+                    !intent.getBooleanExtra(ConnectivityManager.EXTRA_NO_CONNECTIVITY, false))
+            {
+                Toast.makeText(getApplicationContext(), getString(R.string.reconnecting),
+                        Toast.LENGTH_SHORT).show();
+                joinChatroom();
+            }
         }
 
     }
@@ -338,8 +344,9 @@ public class MainActivity extends AppCompatActivity {
         chatroomLeftOnError = true;
         ErrorCode errorCode =
                 (ErrorCode) intent.getSerializableExtra(ChronoSyncService.EXTRA_ERROR_CODE);
-        String toastText = "";
-        boolean shouldClearLogin = true;
+        String toastText = null;
+        boolean shouldClearLogin = false;
+
         switch (errorCode) {
             case NFD_PROBLEM:
                 shouldClearLogin = false;
@@ -348,16 +355,18 @@ public class MainActivity extends AppCompatActivity {
                 break;
             case TRY_RECONNECT:
                 shouldClearLogin = false;
-                toastText = getString(R.string.reconnecting);
                 pretendToLeaveChatroom();
-                handleNetworkChange();
+                handleNetworkChange(null);
                 break;
             case OTHER_EXCEPTION:
+                shouldClearLogin = true;
                 toastText = getString(R.string.error_other);
                 break;
         }
-        Toast.makeText(getApplicationContext(), toastText, Toast.LENGTH_LONG).show();
 
+        if (toastText != null) {
+            Toast.makeText(getApplicationContext(), toastText, Toast.LENGTH_LONG).show();
+        }
         if (shouldClearLogin) {
             clearLoginInfo();
             if (activityVisible)
