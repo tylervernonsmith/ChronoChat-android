@@ -70,7 +70,7 @@ public class MainActivity extends AppCompatActivity {
     private MessagesAdapter messageListAdapter;
     private String username, chatroom, prefix, hub;
     private boolean activityVisible = false,
-        shouldTryReconnectingOnNetworkChange = false;
+        chatroomLeftOnError = false;
     private LocalBroadcastReceiver broadcastReceiver;
 
     @Override
@@ -224,19 +224,20 @@ public class MainActivity extends AppCompatActivity {
     private void joinChatroom() {
         ChronoChatMessage join = new ChronoChatMessage(username, chatroom, ChatMessageType.JOIN);
         sendMessage(join);
-        shouldTryReconnectingOnNetworkChange = false;
+        chatroomLeftOnError = false;
     }
 
     private void leaveChatroom() {
-        ChronoChatMessage leave = new ChronoChatMessage(username, chatroom, ChatMessageType.LEAVE);
-        sendMessage(leave);
+        if (!chatroomLeftOnError) {
+            ChronoChatMessage leave = new ChronoChatMessage(username, chatroom, ChatMessageType.LEAVE);
+            sendMessage(leave);
+        }
         launchLoginActivity();
     }
 
     private void pretendToLeaveChatroom() {
         ChronoChatMessage leave = new ChronoChatMessage(username, chatroom, ChatMessageType.LEAVE);
         messageListAdapter.addMessageToView(leave);
-        shouldTryReconnectingOnNetworkChange = true;
     }
 
     private void requestRoster() {
@@ -327,13 +328,14 @@ public class MainActivity extends AppCompatActivity {
 
     private void handleNetworkChange() {
         Log.d(TAG, "network change detected");
-        if (loginInfoIsSet() && shouldTryReconnectingOnNetworkChange) {
+        if (loginInfoIsSet() && chatroomLeftOnError) {
             joinChatroom();
         }
 
     }
 
     private void handleError(Intent intent) {
+        chatroomLeftOnError = true;
         ErrorCode errorCode =
                 (ErrorCode) intent.getSerializableExtra(ChronoSyncService.EXTRA_ERROR_CODE);
         String toastText = "";
