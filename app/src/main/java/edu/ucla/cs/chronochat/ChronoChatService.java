@@ -41,6 +41,7 @@ public class ChronoChatService extends ChronoSyncService {
     private HashMap<String, Integer> roster, rosterAtLastZombieCheck;
     private Long heartbeatInterestID, zombieTimeoutInterestID;
 
+
     @Override
     public void onCreate() {
         Intent notificationIntent = new Intent(this, MainActivity.class);
@@ -266,6 +267,7 @@ public class ChronoChatService extends ChronoSyncService {
     private void clearLoginInfo() {
         activeUsername = activeChatroom = activePrefix = activeHub = null;
     }
+
 
     private static final OnData DummyOnData = new OnData() {
         @Override
