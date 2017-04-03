@@ -218,9 +218,10 @@ public class MainActivity extends AppCompatActivity {
 
     private void joinChatroom() {
         if (!loginInfoIsSet()) {
-            Log.d(TAG, "joinChatroom aborted: login info not set");
+            Log.d(TAG, "joinChatroom() aborted: login info not set");
             return;
         }
+        Log.d(TAG, "joinChatroom(): sending JOIN");
         ChronoChatMessage join = new ChronoChatMessage(username, chatroom, ChatMessageType.JOIN);
         sendMessage(join);
         joinedChatroom = true;
@@ -332,7 +333,6 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void run() {
                     if (joinedChatroom) return;
-                    Log.d(TAG, "reconnecting after error");
                     Toast.makeText(getApplicationContext(), getString(R.string.reconnecting),
                             Toast.LENGTH_SHORT).show();
                     joinChatroom();
@@ -360,9 +360,8 @@ public class MainActivity extends AppCompatActivity {
                 break;
         }
 
-        if (toastText != null) {
-            Toast.makeText(getApplicationContext(), toastText, Toast.LENGTH_LONG).show();
-        }
+        Toast.makeText(getApplicationContext(), toastText, Toast.LENGTH_LONG).show();
+
         if (shouldClearLogin) {
             clearLoginInfo();
             if (activityVisible)
