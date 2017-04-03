@@ -41,7 +41,7 @@ public class LoginActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.action_quit:
-                // MainActivity should close application upon receiving RESULT_CANCELED
+                // NOTE: MainActivity should close application upon receiving RESULT_CANCELED
                 Intent intent = new Intent(this, MainActivity.class);
                 setResult(RESULT_CANCELED, intent);
                 finish();
@@ -57,7 +57,6 @@ public class LoginActivity extends AppCompatActivity {
                      prefix = this.prefix.getText().toString().trim(),
                      hub = this.hub.getText().toString().trim();
 
-        // FIXME validation
         if (username.equals("") || chatroom.equals("") || prefix.equals("") || hub.equals(""))
             return;
 
