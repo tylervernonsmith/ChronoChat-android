@@ -226,7 +226,7 @@ public class ChronoChatService extends ChronoSyncService {
 
     private void expressHeartbeatInterest() {
         Log.d(TAG, "(re)starting heartbeat timeout");
-        heartbeatInterestID = expressTimeoutInterest(OnHeartBeatTimeout, 60000,
+        heartbeatInterestID = expressTimeoutInterest(OnHeartBeatTimeout, 10000,
                 "error setting up heartbeat");
     }
 
