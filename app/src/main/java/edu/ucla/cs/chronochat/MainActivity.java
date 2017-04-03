@@ -7,7 +7,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.net.ConnectivityManager;
+import android.os.Handler;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.ActionBar;
@@ -48,9 +48,6 @@ public class MainActivity extends AppCompatActivity {
                     String[] roster = intent.getStringArrayExtra(ChronoChatService.EXTRA_ROSTER);
                     showRoster(roster);
                     break;
-                case ConnectivityManager.CONNECTIVITY_ACTION:
-                    handleNetworkChange(intent);
-                    break;
             }
         }
     }
@@ -70,7 +67,7 @@ public class MainActivity extends AppCompatActivity {
     private MessagesAdapter messageListAdapter;
     private String username, chatroom, prefix, hub;
     private boolean activityVisible = false,
-        chatroomLeftOnError = false;
+            joinedChatroom = false;
     private LocalBroadcastReceiver broadcastReceiver;
 
     @Override
@@ -115,9 +112,6 @@ public class MainActivity extends AppCompatActivity {
         LocalBroadcastManager.getInstance(this).registerReceiver(
                 broadcastReceiver,
                 intentFilter);
-        intentFilter = new IntentFilter();
-        intentFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
-        getApplicationContext().registerReceiver(broadcastReceiver, intentFilter);
     }
 
     @Override
@@ -222,22 +216,23 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void joinChatroom() {
+        if (!loginInfoIsSet()) {
+            Log.d(TAG, "joinChatroom aborted: login info not set");
+            return;
+        }
         ChronoChatMessage join = new ChronoChatMessage(username, chatroom, ChatMessageType.JOIN);
         sendMessage(join);
-        chatroomLeftOnError = false;
+        joinedChatroom = true;
     }
 
     private void leaveChatroom() {
-        if (!chatroomLeftOnError) {
-            ChronoChatMessage leave = new ChronoChatMessage(username, chatroom, ChatMessageType.LEAVE);
+        if (loginInfoIsSet() && joinedChatroom) {
+            joinedChatroom = false;
+            ChronoChatMessage leave = new ChronoChatMessage(username, chatroom,
+                    ChatMessageType.LEAVE);
             sendMessage(leave);
         }
         launchLoginActivity();
-    }
-
-    private void pretendToLeaveChatroom() {
-        ChronoChatMessage leave = new ChronoChatMessage(username, chatroom, ChatMessageType.LEAVE);
-        messageListAdapter.addMessageToView(leave);
     }
 
     private void requestRoster() {
@@ -254,14 +249,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void sendMessage(View view) {
+        if (!joinedChatroom) return;
+
         Editable messageField = editMessage.getText();
         String text = messageField.toString();
         if (text.equals("")) return;
         messageField.clear();
-
-        if (chatroomLeftOnError) {
-            joinChatroom();
-        }
 
         ChronoChatMessage message = new ChronoChatMessage(username, chatroom, ChatMessageType.CHAT,
                 text);
@@ -330,22 +323,24 @@ public class MainActivity extends AppCompatActivity {
         dialog.show(getFragmentManager(), "RosterDialogFragment");
     }
 
-    private void handleNetworkChange(Intent intent) {
-        Log.d(TAG, "network change detected");
-        if (loginInfoIsSet() && chatroomLeftOnError) {
-            if (intent == null ||
-                    !intent.getBooleanExtra(ConnectivityManager.EXTRA_NO_CONNECTIVITY, false))
-            {
-                Toast.makeText(getApplicationContext(), getString(R.string.reconnecting),
-                        Toast.LENGTH_SHORT).show();
-                joinChatroom();
-            }
+    private void reconnectAfterDelay() {
+        if (loginInfoIsSet()) {
+            Handler handler = new Handler();
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    if (joinedChatroom) return;
+                    Log.d(TAG, "reconnecting after delay");
+                    Toast.makeText(getApplicationContext(), getString(R.string.reconnecting),
+                            Toast.LENGTH_SHORT).show();
+                    joinChatroom();
+                }
+            }, 5000);
         }
-
     }
 
     private void handleError(Intent intent) {
-        chatroomLeftOnError = true;
+        joinedChatroom = false;
         ErrorCode errorCode =
                 (ErrorCode) intent.getSerializableExtra(ChronoSyncService.EXTRA_ERROR_CODE);
         String toastText = null;
@@ -355,12 +350,11 @@ public class MainActivity extends AppCompatActivity {
             case NFD_PROBLEM:
                 shouldClearLogin = false;
                 toastText = getString(R.string.error_nfd);
-                pretendToLeaveChatroom();
+                reconnectAfterDelay();
                 break;
             case TRY_RECONNECT:
                 shouldClearLogin = false;
-                pretendToLeaveChatroom();
-                handleNetworkChange(null);
+                reconnectAfterDelay();
                 break;
             case OTHER_EXCEPTION:
                 shouldClearLogin = true;

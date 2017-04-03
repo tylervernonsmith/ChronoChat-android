@@ -90,6 +90,7 @@ public class ChronoChatService extends ChronoSyncService {
                     broadcastRoster();
                     break;
                 case ACTION_STOP:
+                    prepareToLeaveChat();
                     stopSelf();
                     break;
             }
@@ -103,10 +104,8 @@ public class ChronoChatService extends ChronoSyncService {
         super.onDestroy();
         for (String user : roster.keySet()) {
             // fake LEAVE messages for everyone in roster
-            if (!user.equals(activeUsername)) {
-                byte[] leave = getControlMessage(ChatMessageType.LEAVE, user);
-                broadcastReceivedMessage(leave);
-            }
+            byte[] leave = getControlMessage(ChatMessageType.LEAVE, user);
+            broadcastReceivedMessage(leave);
         }
     }
 
@@ -229,10 +228,11 @@ public class ChronoChatService extends ChronoSyncService {
     }
 
     private void broadcastRoster() {
-        if (roster == null) return;
         Intent rosterIntent = new Intent(BCAST_ROSTER);
-        String[] usernames = roster.keySet().toArray(new String[0]);
-        rosterIntent.putExtra(EXTRA_ROSTER, usernames);
+        if (roster != null) {
+            String[] usernames = roster.keySet().toArray(new String[0]);
+            rosterIntent.putExtra(EXTRA_ROSTER, usernames);
+        }
         LocalBroadcastManager.getInstance(this).sendBroadcast(rosterIntent);
     }
 
