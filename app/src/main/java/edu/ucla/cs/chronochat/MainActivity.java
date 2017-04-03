@@ -259,6 +259,10 @@ public class MainActivity extends AppCompatActivity {
         if (text.equals("")) return;
         messageField.clear();
 
+        if (chatroomLeftOnError) {
+            joinChatroom();
+        }
+
         ChronoChatMessage message = new ChronoChatMessage(username, chatroom, ChatMessageType.CHAT,
                 text);
         sendMessage(message);
