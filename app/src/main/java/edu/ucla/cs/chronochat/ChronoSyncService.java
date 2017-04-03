@@ -86,10 +86,9 @@ public abstract class ChronoSyncService extends Service {
                     raiseError("error in processEvents loop", ErrorCode.OTHER_EXCEPTION, e);
                 }
             }
-            ErrorCode error = raisedErrorCode;
             doApplicationCleanup();
             doFinalCleanup();
-            handleErrorIfNeeded(error);
+            handleAnyRaisedError();
             Log.d(TAG, "network thread stopped");
         }
     });
@@ -169,7 +168,6 @@ public abstract class ChronoSyncService extends Service {
         if (face != null) face.shutdown();
         face = null;
         sync = null;
-        raisedErrorCode = null;
         Log.d(TAG, "service cleanup/reset complete");
     }
 
@@ -243,12 +241,12 @@ public abstract class ChronoSyncService extends Service {
         raiseError(logMessage, code, null);
     }
 
-    private void handleErrorIfNeeded(ErrorCode error) {
-        if (error == null) return;
+    private void handleAnyRaisedError() {
+        if (raisedErrorCode == null) return;
 
         Log.d(TAG, "broadcasting error intent w/code = " + raisedErrorCode + "...");
         Intent bcast = new Intent(BCAST_ERROR);
-        bcast.putExtra(EXTRA_ERROR_CODE, error);
+        bcast.putExtra(EXTRA_ERROR_CODE, raisedErrorCode);
         LocalBroadcastManager.getInstance(ChronoSyncService.this).sendBroadcast(bcast);
 
         stopSelf();
