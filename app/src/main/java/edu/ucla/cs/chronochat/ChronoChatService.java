@@ -99,6 +99,18 @@ public class ChronoChatService extends ChronoSyncService {
     }
 
     @Override
+    public void onDestroy() {
+        super.onDestroy();
+        for (String user : roster.keySet()) {
+            // fake LEAVE messages for everyone in roster
+            if (!user.equals(activeUsername)) {
+                byte[] leave = getControlMessage(ChatMessageType.LEAVE, user);
+                broadcastReceivedMessage(leave);
+            }
+        }
+    }
+
+    @Override
     protected void handleApplicationData(byte[] receivedData) {
         if (activeUsername == null) {
             Log.d(TAG, "ignoring received message because we are logged out");
