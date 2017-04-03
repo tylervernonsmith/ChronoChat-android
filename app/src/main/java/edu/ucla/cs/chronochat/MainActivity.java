@@ -164,6 +164,20 @@ public class MainActivity extends AppCompatActivity {
         sendMessage(join);
     }
 
+    private void setLoginInfo(String username, String chatroom, String prefix, String hub) {
+        this.username = username;
+        this.chatroom = chatroom;
+        this.prefix = prefix;
+        this.hub = hub;
+
+        messageListAdapter.setLoggedInUsername(username);
+
+        ActionBar actionBar = getSupportActionBar();
+        if (actionBar == null)
+            Log.e(TAG, "couldn't retrieve action bar to set title");
+        else
+            actionBar.setTitle(chatroom);
+    }
     @Override
     protected void onStart() {
         super.onStart();
