@@ -35,7 +35,7 @@ import java.util.List;
 public abstract class ChronoSyncService extends Service {
 
     private static final String TAG = "ChronoSyncService";
-    private static final double SYNC_LIFETIME = 15000.0; // FIXME?
+    private static final double SYNC_LIFETIME = 15000.0;
 
     /* Intent constants */
     public static final String
@@ -92,16 +92,33 @@ public abstract class ChronoSyncService extends Service {
         }
     });
 
-    protected void raiseError(String logMessage, ErrorCode code, Throwable exception) {
-        if (exception == null) Log.e(TAG, logMessage);
-        else Log.e(TAG, logMessage, exception);
-        if (raisedErrorCode == null) raisedErrorCode = code;
-        stopNetworkThread();
+
+    public ChronoSyncService() {
+        this(false, true);
     }
 
-    protected void raiseError(String logMessage, ErrorCode code) {
-        raiseError(logMessage, code, null);
+    public ChronoSyncService(boolean shouldRetrieveStaleData, boolean shouldEnsureInOrderDelivery) {
+        this.shouldRetrieveStaleData = shouldRetrieveStaleData;
+        this.shouldEnsureInOrderDelivery = shouldEnsureInOrderDelivery;
     }
+
+
+    @Override
+    public void onDestroy() {
+        // attempt to clean up after ourselves
+        Log.d(TAG, "onDestroy() cleaning up...");
+        stopNetworkThreadAndBlockUntilDone();
+        Log.d(TAG, "service destroyed");
+    }
+
+    @Override
+    public void onTaskRemoved(Intent rootIntent) {
+        stopSelf();
+    }
+
+    @Override
+    public IBinder onBind(Intent intent) { return null; }
+
 
     protected void initializeService(String hub, String dataPrefixStr, String broadcastPrefixStr,
                                      byte[] initialData) {
@@ -126,9 +143,11 @@ public abstract class ChronoSyncService extends Service {
             networkThread.start();
         }
     }
+
     private void stopNetworkThread() {
         networkThreadShouldStop = true;
     }
+
     private void stopNetworkThreadAndBlockUntilDone() {
         stopNetworkThread();
         Log.d(TAG, "waiting for network thread to stop...");
@@ -139,6 +158,17 @@ public abstract class ChronoSyncService extends Service {
                 Log.e(TAG, "interruption while waiting for network thread to stop", e);
             }
         }
+    }
+
+    private void cleanup() {
+        Log.d(TAG, "cleaning up and resetting service...");
+        syncInitialized = false;
+        if (sync != null) sync.shutdown();
+        if (face != null) face.shutdown();
+        face = null;
+        sync = null;
+        raisedErrorCode = null;
+        Log.d(TAG, "service cleanup/reset complete");
     }
 
     private void initializeKeyChain() {
@@ -158,15 +188,15 @@ public abstract class ChronoSyncService extends Service {
         } catch (SecurityException e) {
             Log.d(TAG, "unable to get default certificate name");
 
-            // FIXME??? This is based on apps-NDN-Whiteboard/helpers/Utils.buildTestKeyChain()...
+            // NOTE: This is based on apps-NDN-Whiteboard/helpers/Utils.buildTestKeyChain()...
             Name testIdName = new Name("/test/identity");
             try {
                 defaultCertificateName = keyChain.createIdentityAndCertificate(testIdName);
                 keyChain.getIdentityManager().setDefaultIdentity(testIdName);
                 Log.d(TAG, "created default ID: " + defaultCertificateName.toString());
             } catch (SecurityException e2) {
-                Log.e(TAG, "unable to create default identity", e);
-                defaultCertificateName = new Name("/bogus/certificate/name"); // FIXME
+                defaultCertificateName = new Name("/bogus/certificate/name");
+                raiseError("unable to create default identity", ErrorCode.OTHER_EXCEPTION, e2);
             }
         }
         face.setCommandSigningInfo(keyChain, defaultCertificateName);
@@ -197,6 +227,43 @@ public abstract class ChronoSyncService extends Service {
     }
 
     protected abstract void doApplicationSetup();
+
+    protected void raiseError(String logMessage, ErrorCode code, Throwable exception) {
+        if (exception == null) Log.e(TAG, logMessage);
+        else Log.e(TAG, logMessage, exception);
+        if (raisedErrorCode == null) raisedErrorCode = code;
+        stopNetworkThread();
+    }
+
+    protected void raiseError(String logMessage, ErrorCode code) {
+        raiseError(logMessage, code, null);
+    }
+
+    private void broadcastIntentIfErrorRaised() {
+        if (raisedErrorCode == null) return;
+
+        Log.d(TAG, "broadcasting error intent w/code = " + raisedErrorCode + "...");
+        Intent bcast = new Intent(BCAST_ERROR);
+        bcast.putExtra(EXTRA_ERROR_CODE, raisedErrorCode);
+        LocalBroadcastManager.getInstance(ChronoSyncService.this).sendBroadcast(bcast);
+    }
+
+    protected void send(byte[] message) {
+        sentData.add(message);
+    }
+
+    private void publishSeqNumsIfNeeded() {
+        if (!syncInitialized) return;
+        while(nextSyncSeqNum() < nextDataSeqNum()) {
+            long seqNumToPublish = nextSyncSeqNum();
+            try {
+                sync.publishNextSequenceNo();
+                Log.d(TAG, "published seqnum " + seqNumToPublish);
+            } catch (IOException | SecurityException e) {
+                raiseError("failed to publish seqnum " + seqNumToPublish, ErrorCode.NFD_PROBLEM, e);
+            }
+        }
+    }
 
     private void processSyncState(ChronoSync2013.SyncState syncState, boolean isRecovery) {
 
@@ -245,70 +312,8 @@ public abstract class ChronoSyncService extends Service {
         }
     }
 
-    private void publishSeqNumsIfNeeded() {
-        if (!syncInitialized) return;
-        while(nextSyncSeqNum() < nextDataSeqNum()) {
-            long seqNumToPublish = nextSyncSeqNum();
-            try {
-                sync.publishNextSequenceNo();
-                Log.d(TAG, "published seqnum " + seqNumToPublish);
-            } catch (IOException | SecurityException e) {
-                raiseError("failed to publish seqnum " + seqNumToPublish, ErrorCode.NFD_PROBLEM, e);
-            }
-        }
-    }
-
     private int nextDataSeqNum() { return sentData.size(); }
     private long nextSyncSeqNum() { return sync.getSequenceNo() + 1; }
-
-    public ChronoSyncService() {
-        this(false, true);
-    }
-
-    public ChronoSyncService(boolean shouldRetrieveStaleData, boolean shouldEnsureInOrderDelivery) {
-        this.shouldRetrieveStaleData = shouldRetrieveStaleData;
-        this.shouldEnsureInOrderDelivery = shouldEnsureInOrderDelivery;
-    }
-
-    @Override
-    public void onTaskRemoved(Intent rootIntent) {
-        stopSelf();
-    }
-
-    @Override
-    public void onDestroy() {
-        // attempt to clean up after ourselves
-        Log.d(TAG, "onDestroy() cleaning up...");
-        stopNetworkThreadAndBlockUntilDone();
-        Log.d(TAG, "service destroyed");
-    }
-
-    @Override
-    public IBinder onBind(Intent intent) { return null; }
-
-    private void cleanup() {
-        Log.d(TAG, "cleaning up and resetting service...");
-        syncInitialized = false;
-        if (sync != null) sync.shutdown();
-        if (face != null) face.shutdown();
-        face = null;
-        sync = null;
-        raisedErrorCode = null;
-        Log.d(TAG, "service cleanup/reset complete");
-    }
-
-    protected void send(byte[] message) {
-        sentData.add(message);
-    }
-
-    private void broadcastIntentIfErrorRaised() {
-        if (raisedErrorCode == null) return;
-
-        Log.d(TAG, "broadcasting error intent w/code = " + raisedErrorCode + "...");
-        Intent bcast = new Intent(BCAST_ERROR);
-        bcast.putExtra(EXTRA_ERROR_CODE, raisedErrorCode);
-        LocalBroadcastManager.getInstance(ChronoSyncService.this).sendBroadcast(bcast);
-    }
 
     private void processReceivedData(Name name, byte[] content) {
         Name syncDataId = name.getPrefix(-1);
@@ -444,7 +449,6 @@ public abstract class ChronoSyncService extends Service {
         public void onTimeout(Interest interest) {
             Name name = interest.getName();
             Log.d(TAG, "timed out waiting for " + name);
-            // FIXME? should we do something other than give up?
         }
     };
 
@@ -453,7 +457,6 @@ public abstract class ChronoSyncService extends Service {
         public void onNetworkNack(Interest interest, NetworkNack networkNack) {
             Name name = interest.getName();
             Log.d(TAG, "received NACK for " + name);
-            // FIXME? should we do something other than give up?
         }
     };
 }
