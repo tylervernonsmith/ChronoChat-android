@@ -348,7 +348,7 @@ public class MainActivity extends AppCompatActivity {
                 break;
             case TRY_RECONNECT:
                 shouldClearLogin = false;
-                toastText = "Network change detected, trying to reconnect...";
+                toastText = getString(R.string.reconnecting);
                 pretendToLeaveChatroom();
                 handleNetworkChange();
                 break;
