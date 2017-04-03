@@ -121,7 +121,7 @@ public class ChronoChatService extends ChronoSyncService {
     }
 
     @Override
-    protected void setUpForApplication() {
+    protected void doApplicationSetup() {
         expressHeartbeatInterest();
         expressZombieTimeoutInterest();
     }
