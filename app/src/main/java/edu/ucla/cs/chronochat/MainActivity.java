@@ -31,25 +31,6 @@ import edu.ucla.cs.chronochat.ChatbufProto.ChatMessage.ChatMessageType;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final String TAG = "MainActivity",
-                                SAVED_USERNAME = TAG + ".username",
-                                SAVED_CHATROOM = TAG + ".chatroom",
-                                SAVED_PREFIX = TAG + ".prefix",
-                                SAVED_HUB = TAG + ".hub",
-                                SAVED_MESSAGES = TAG + ".messages";
-
-    // index of username component in data names
-    private static final int NOTIFICATION_ID = 0;
-    public static final int SERVICE_NOTIFICATION_ID = 1;
-
-    private EditText editMessage;
-    private ArrayList<ChronoChatMessage> messageList = new ArrayList<>();
-    private MessagesAdapter messageListAdapter;
-
-    private String username, chatroom, prefix, hub;
-
-    private boolean activityVisible = false;
-
     private class LocalBroadcastReceiver extends BroadcastReceiver {
 
         @Override
@@ -69,18 +50,22 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private LocalBroadcastReceiver broadcastReceiver;
+    private static final String TAG = "MainActivity",
+                                SAVED_USERNAME = TAG + ".username",
+                                SAVED_CHATROOM = TAG + ".chatroom",
+                                SAVED_PREFIX = TAG + ".prefix",
+                                SAVED_HUB = TAG + ".hub",
+                                SAVED_MESSAGES = TAG + ".messages";
 
-    private void registerBroadcastReceiver() {
-        broadcastReceiver = new LocalBroadcastReceiver();
-        IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(ChronoSyncService.BCAST_ERROR);
-        intentFilter.addAction(ChronoChatService.BCAST_RECEIVED_MSG);
-        intentFilter.addAction(ChronoChatService.BCAST_ROSTER);
-        LocalBroadcastManager.getInstance(this).registerReceiver(
-                broadcastReceiver,
-                intentFilter);
-    }
+    private static final int NOTIFICATION_ID = 0;
+    public static final int SERVICE_NOTIFICATION_ID = 1;
+
+    private EditText editMessage;
+    private ArrayList<ChronoChatMessage> messageList = new ArrayList<>();
+    private MessagesAdapter messageListAdapter;
+    private String username, chatroom, prefix, hub;
+    private boolean activityVisible = false;
+    private LocalBroadcastReceiver broadcastReceiver;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -98,13 +83,14 @@ public class MainActivity extends AppCompatActivity {
 
         if (savedInstanceState != null) {
             Log.d(TAG, "restoring saved instance state");
-            setUsername(savedInstanceState.getString(SAVED_USERNAME));
-            prefix = savedInstanceState.getString(SAVED_PREFIX);
-            setChatroom(savedInstanceState.getString(SAVED_CHATROOM));
-            hub = savedInstanceState.getString(SAVED_HUB);
+            setLoginInfo(savedInstanceState.getString(SAVED_USERNAME),
+                    savedInstanceState.getString(SAVED_CHATROOM),
+                    savedInstanceState.getString(SAVED_PREFIX),
+                    savedInstanceState.getString(SAVED_HUB));
             ArrayList<ChronoChatMessage> savedMessages =
                     savedInstanceState.getParcelableArrayList(SAVED_MESSAGES);
-            messageListAdapter.addAll(savedMessages);
+            if (savedMessages != null)
+                messageListAdapter.addAll(savedMessages);
         }
 
         ActionBar actionBar = getSupportActionBar();
@@ -114,40 +100,35 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void registerBroadcastReceiver() {
+        broadcastReceiver = new LocalBroadcastReceiver();
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(ChronoSyncService.BCAST_ERROR);
+        intentFilter.addAction(ChronoChatService.BCAST_RECEIVED_MSG);
+        intentFilter.addAction(ChronoChatService.BCAST_ROSTER);
+        LocalBroadcastManager.getInstance(this).registerReceiver(
+                broadcastReceiver,
+                intentFilter);
+    }
+
     @Override
     public void onResume() {
         super.onResume();
         activityVisible = true;
         hideNotification();
         if (!loginInfoIsSet())
-            getLoginInfo();
+            launchLoginActivity();
     }
 
-    @Override
-    public void onStop() {
-        super.onStop();
-        activityVisible = false;
-    }
-
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastReceiver);
-    }
-
-    @Override
-    public void onBackPressed() {
-        // don't destroy the activity when "back" is pressed, just hide the application
-        moveTaskToBack(true);
-    }
-
-    private void getLoginInfo() {
+    private void launchLoginActivity() {
         clearLoginInfo();
         startActivityForResult(new Intent(this, LoginActivity.class), 0);
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        // Process results from LoginActivity
+
         if (resultCode != RESULT_OK) {
             quitApplication();
             return;
@@ -155,10 +136,11 @@ public class MainActivity extends AppCompatActivity {
 
         messageList.clear();
         messageListAdapter.notifyDataSetChanged();
-        setUsername(data.getStringExtra(ChronoChatService.EXTRA_USERNAME));
-        prefix = data.getStringExtra(ChronoChatService.EXTRA_PREFIX);
-        setChatroom(data.getStringExtra(ChronoChatService.EXTRA_CHATROOM));
-        hub = data.getStringExtra(ChronoChatService.EXTRA_HUB);
+
+        setLoginInfo(data.getStringExtra(ChronoChatService.EXTRA_USERNAME),
+                data.getStringExtra(ChronoChatService.EXTRA_CHATROOM),
+                data.getStringExtra(ChronoChatService.EXTRA_PREFIX),
+                data.getStringExtra(ChronoChatService.EXTRA_HUB));
 
         ChronoChatMessage join = new ChronoChatMessage(username, chatroom, ChatMessageType.JOIN);
         sendMessage(join);
@@ -178,9 +160,23 @@ public class MainActivity extends AppCompatActivity {
         else
             actionBar.setTitle(chatroom);
     }
+
     @Override
-    protected void onStart() {
-        super.onStart();
+    public void onStop() {
+        super.onStop();
+        activityVisible = false;
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastReceiver);
+    }
+
+    @Override
+    public void onBackPressed() {
+        // don't destroy the activity when "back" is pressed, just hide the application
+        moveTaskToBack(true);
     }
 
     @Override
@@ -217,19 +213,23 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void setUsername(String username) {
-        this.username = username;
-        messageListAdapter.setLoggedInUsername(username);
+    private void leaveChatroom() {
+        ChronoChatMessage leave = new ChronoChatMessage(username, chatroom, ChatMessageType.LEAVE);
+        sendMessage(leave);
+        launchLoginActivity();
     }
 
-    private void setChatroom(String chatroom) {
-        this.chatroom = chatroom;
-        ActionBar actionBar = getSupportActionBar();
-        if (actionBar == null)
-            Log.e(TAG, "couldn't retrieve action bar to set title");
-        else {
-            actionBar.setTitle(chatroom);
-        }
+    private void requestRoster() {
+        Intent request = new Intent(this, ChronoChatService.class);
+        request.setAction(ChronoChatService.ACTION_GET_ROSTER);
+        startService(request);
+    }
+
+    private void quitApplication() {
+        Intent request = new Intent(this, ChronoChatService.class);
+        request.setAction(ChronoChatService.ACTION_STOP);
+        startService(request);
+        finish();
     }
 
     public void sendMessage(View view) {
@@ -261,7 +261,6 @@ public class MainActivity extends AppCompatActivity {
         messageListAdapter.addMessageToView(message);
     }
 
-
     private void showNotification(ChronoChatMessage message) {
 
         if (activityVisible) return;
@@ -280,7 +279,6 @@ public class MainActivity extends AppCompatActivity {
                                 R.color.colorPrimary))
                         .setDefaults(Notification.DEFAULT_SOUND|Notification.DEFAULT_LIGHTS);
 
-        // FIXME is this done right?
         Intent intent = new Intent(this, MainActivity.class);
         PendingIntent resultPendingIntent = PendingIntent.getActivity(getApplicationContext(),
                 (int)System.currentTimeMillis(), intent, 0);
@@ -297,12 +295,6 @@ public class MainActivity extends AppCompatActivity {
         NotificationManager notificationManager =
                 (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.cancel(NOTIFICATION_ID);
-    }
-
-    private void requestRoster() {
-        Intent request = new Intent(this, ChronoChatService.class);
-        request.setAction(ChronoChatService.ACTION_GET_ROSTER);
-        startService(request);
     }
 
     private void showRoster(String[] roster) {
@@ -329,20 +321,7 @@ public class MainActivity extends AppCompatActivity {
 
         clearLoginInfo();
         if (activityVisible)
-            getLoginInfo();
-    }
-
-    private void leaveChatroom() {
-        ChronoChatMessage leave = new ChronoChatMessage(username, chatroom, ChatMessageType.LEAVE);
-        sendMessage(leave);
-        getLoginInfo();
-    }
-
-    private void quitApplication() {
-        Intent request = new Intent(this, ChronoChatService.class);
-        request.setAction(ChronoChatService.ACTION_STOP);
-        startService(request);
-        finish();
+            launchLoginActivity();
     }
 
     private boolean loginInfoIsSet() {
