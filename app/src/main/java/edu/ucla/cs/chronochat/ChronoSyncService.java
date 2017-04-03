@@ -43,7 +43,7 @@ public abstract class ChronoSyncService extends Service {
             BCAST_ERROR = INTENT_PREFIX + "BCAST_ERROR",
             EXTRA_ERROR_CODE = INTENT_PREFIX + "EXTRA_ERROR_CODE";
 
-    enum ErrorCode { NFD_PROBLEM, OTHER_EXCEPTION, TRY_RECONNECT }
+    enum ErrorCode { NFD_PROBLEM, OTHER_EXCEPTION }
 
     private ErrorCode raisedErrorCode = null;
 
@@ -81,7 +81,7 @@ public abstract class ChronoSyncService extends Service {
                     face.processEvents();
                     Thread.sleep(100); // avoid hammering the CPU
                 } catch (IOException e) {
-                    raiseError("error in processEvents loop", ErrorCode.TRY_RECONNECT, e);
+                    raiseError("error in processEvents loop", ErrorCode.NFD_PROBLEM, e);
                 } catch (Exception e) {
                     raiseError("error in processEvents loop", ErrorCode.OTHER_EXCEPTION, e);
                 }

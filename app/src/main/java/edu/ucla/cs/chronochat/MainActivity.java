@@ -325,12 +325,13 @@ public class MainActivity extends AppCompatActivity {
 
     private void reconnectAfterDelay() {
         if (loginInfoIsSet()) {
+            Log.d(TAG, "queuing delayed reconnection");
             Handler handler = new Handler();
             handler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
                     if (joinedChatroom) return;
-                    Log.d(TAG, "reconnecting after delay");
+                    Log.d(TAG, "reconnecting after error");
                     Toast.makeText(getApplicationContext(), getString(R.string.reconnecting),
                             Toast.LENGTH_SHORT).show();
                     joinChatroom();
@@ -350,10 +351,6 @@ public class MainActivity extends AppCompatActivity {
             case NFD_PROBLEM:
                 shouldClearLogin = false;
                 toastText = getString(R.string.error_nfd);
-                reconnectAfterDelay();
-                break;
-            case TRY_RECONNECT:
-                shouldClearLogin = false;
                 reconnectAfterDelay();
                 break;
             case OTHER_EXCEPTION:
