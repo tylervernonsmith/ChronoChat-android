@@ -1,6 +1,7 @@
 package edu.ucla.cs.chronochat;
 
 import android.content.Context;
+import android.support.annotation.NonNull;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,21 +13,21 @@ import java.util.ArrayList;
 import edu.ucla.cs.chronochat.ChatbufProto.ChatMessage.ChatMessageType;
 
 
-public class MessagesAdapter extends ArrayAdapter<ChronoChatMessage> {
+class MessagesAdapter extends ArrayAdapter<ChronoChatMessage> {
+
+    private static class ViewHolder {
+        TextView usernameView, messageTextView;
+    }
 
     private String loggedInUsername;
-    private static final String TAG = "MessagesAdapter";
     private static final int TYPE_SENT_MESSAGE_WITH_USERNAME = 0,
                              TYPE_SENT_MESSAGE_ONLY = 1,
                              TYPE_RECEIVED_MESSAGE_WITH_USERNAME = 2,
                              TYPE_RECEIVED_MESSAGE_ONLY = 3,
                              VIEW_TYPE_COUNT = 4;
 
-    private static class ViewHolder {
-        TextView usernameView, messageTextView;
-    }
 
-    public MessagesAdapter(Context context, ArrayList<ChronoChatMessage> messages) {
+    MessagesAdapter(Context context, ArrayList<ChronoChatMessage> messages) {
         super(context, 0, messages);
     }
 
@@ -47,8 +48,9 @@ public class MessagesAdapter extends ArrayAdapter<ChronoChatMessage> {
         return (sent ? TYPE_SENT_MESSAGE_WITH_USERNAME : TYPE_RECEIVED_MESSAGE_WITH_USERNAME);
     }
 
+    @NonNull
     @Override
-    public View getView(int position, View view, ViewGroup parent) {
+    public View getView(int position, View view, @NonNull ViewGroup parent) {
         ChronoChatMessage message = getItem(position);
         ViewHolder viewHolder;
 
@@ -107,9 +109,9 @@ public class MessagesAdapter extends ArrayAdapter<ChronoChatMessage> {
         return LayoutInflater.from(getContext()).inflate(layout, parent, false);
     }
 
-    public void setLoggedInUsername(String username) { loggedInUsername = username; }
+    void setLoggedInUsername(String username) { loggedInUsername = username; }
 
-    public void addMessageToView(ChronoChatMessage message) {
+    void addMessageToView(ChronoChatMessage message) {
         if (message.getType() == ChatMessageType.HELLO) return;
         add(message);
         notifyDataSetChanged();
