@@ -15,7 +15,8 @@ public class RosterDialogFragment extends DialogFragment {
     public Dialog onCreateDialog(Bundle savedInstanceState) {
 
         String[] roster = getArguments().getStringArray(ChronoChatService.EXTRA_ROSTER);
-        Arrays.sort(roster, String.CASE_INSENSITIVE_ORDER);
+        if (roster != null)
+            Arrays.sort(roster, String.CASE_INSENSITIVE_ORDER);
 
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         builder.setTitle(R.string.dialog_roster)
