@@ -7,8 +7,6 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.ActionBar;
@@ -49,10 +47,6 @@ public class MainActivity extends AppCompatActivity {
                     String[] roster = intent.getStringArrayExtra(ChronoChatService.EXTRA_ROSTER);
                     showRoster(roster);
                     break;
-                case ConnectivityManager.CONNECTIVITY_ACTION:
-                    handleNetworkChange(intent);
-                    break;
-
             }
         }
     }
@@ -71,8 +65,7 @@ public class MainActivity extends AppCompatActivity {
     private ArrayList<ChronoChatMessage> messageList = new ArrayList<>();
     private MessagesAdapter messageListAdapter;
     private String username, chatroom, prefix, hub;
-    private boolean activityVisible = false,
-            tryReconnecting = false;
+    private boolean activityVisible = false;
     private LocalBroadcastReceiver broadcastReceiver;
 
     @Override
@@ -117,10 +110,6 @@ public class MainActivity extends AppCompatActivity {
         LocalBroadcastManager.getInstance(this).registerReceiver(
                 broadcastReceiver,
                 intentFilter);
-        intentFilter = new IntentFilter();
-        intentFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
-        getApplicationContext().registerReceiver(broadcastReceiver, intentFilter);
-
     }
 
     @Override
@@ -317,36 +306,28 @@ public class MainActivity extends AppCompatActivity {
         dialog.show(getFragmentManager(), "RosterDialogFragment");
     }
 
-    private void handleNetworkChange(Intent intent) {
-        Log.d(TAG, "network change detected");
-        tryReconnecting = true;
-    }
-
     private void handleError(Intent intent) {
         ErrorCode errorCode =
                 (ErrorCode) intent.getSerializableExtra(ChronoSyncService.EXTRA_ERROR_CODE);
         String toastText = "";
-        boolean shouldShowLogin = false;
+        boolean shouldClearLogin = true;
         switch (errorCode) {
             case NFD_PROBLEM:
-                if (tryReconnecting && loginInfoIsSet()) {
-                    toastText = "Network change detected, trying to reconnect...";
-                    tryReconnecting = false;
-                    ChronoChatMessage join = new ChronoChatMessage(username, chatroom, ChatMessageType.JOIN);
-                    sendMessage(join);
-                } else {
-                    toastText = getString(R.string.error_nfd);
-                    shouldShowLogin = true;
-                }
+                toastText = getString(R.string.error_nfd);
+                break;
+            case TRY_RECONNECT:
+                shouldClearLogin = false;
+                toastText = "Network change detected, trying to reconnect...";
+                ChronoChatMessage join = new ChronoChatMessage(username, chatroom, ChatMessageType.JOIN);
+                sendMessage(join);
                 break;
             case OTHER_EXCEPTION:
                 toastText = getString(R.string.error_other);
-                shouldShowLogin = true;
                 break;
         }
         Toast.makeText(getApplicationContext(), toastText, Toast.LENGTH_LONG).show();
 
-        if (shouldShowLogin) {
+        if (shouldClearLogin) {
             clearLoginInfo();
             if (activityVisible)
                 launchLoginActivity();
