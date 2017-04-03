@@ -59,7 +59,8 @@ public class MainActivity extends AppCompatActivity {
                                 SAVED_HUB = TAG + ".hub",
                                 SAVED_MESSAGES = TAG + ".messages";
 
-    private static final int NOTIFICATION_ID = 0;
+    private static final int NOTIFICATION_ID = 0,
+                             RECONNECT_DELAY = 5000;
     public static final int SERVICE_NOTIFICATION_ID = 1;
 
     private EditText editMessage;
@@ -336,7 +337,7 @@ public class MainActivity extends AppCompatActivity {
                             Toast.LENGTH_SHORT).show();
                     joinChatroom();
                 }
-            }, 5000);
+            }, RECONNECT_DELAY);
         }
     }
 
