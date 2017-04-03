@@ -184,13 +184,20 @@ public class ChronoChatService extends ChronoSyncService {
     }
 
     private void prepareToLeaveChat() {
+        Log.d(TAG, "preparing to leave chat...");
         clearLoginInfo();
         if (heartbeatInterestID != null) {                      // stop heartbeat
-            face.removePendingInterest(heartbeatInterestID);
+            if (face != null) {
+                Log.d(TAG, "removing heartbeat timeout interest");
+                face.removePendingInterest(heartbeatInterestID);
+            }
             heartbeatInterestID = null;
         }
         if (zombieTimeoutInterestID != null) {                   // stop zombie timeout
-            face.removePendingInterest(zombieTimeoutInterestID);
+            if (face != null) {
+                Log.d(TAG, "removing zombie timeout interest");
+                face.removePendingInterest(zombieTimeoutInterestID);
+            }
             zombieTimeoutInterestID = null;
         }
     }
@@ -265,6 +272,7 @@ public class ChronoChatService extends ChronoSyncService {
     }
 
     private void clearLoginInfo() {
+        Log.d(TAG, "clearing login info");
         activeUsername = activeChatroom = activePrefix = activeHub = null;
     }
 
