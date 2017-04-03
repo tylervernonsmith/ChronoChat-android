@@ -13,8 +13,8 @@ import edu.ucla.cs.chronochat.ChatbufProto.ChatMessage;
 import edu.ucla.cs.chronochat.ChatbufProto.ChatMessage.ChatMessageType;
 
 
-/* Wrapper Parcelable class for ChatMessage. Probably would have been nicer to extend ChatMessage
- *   but the Protobuf document warns against inheriting from generated message classes.
+/* Wrapper Parcelable class for ChatMessage. Might have been nicer to extend ChatMessage
+ *   but the Protobuf documentation warns against inheriting from generated message classes.
  */
 public class ChronoChatMessage implements Parcelable {
 
@@ -23,10 +23,6 @@ public class ChronoChatMessage implements Parcelable {
     private ChatMessage message;
     private boolean parseError = false;
 
-
-    public ChronoChatMessage(final ChatMessage fromMessage) {
-        message = fromMessage;
-    }
 
     public ChronoChatMessage(String username, String chatroom, ChatMessageType type,
                              String data) {
@@ -74,6 +70,7 @@ public class ChronoChatMessage implements Parcelable {
         setMessage(username, chatroom, type, "");
     }
 
+
     public String getFrom() { return message.getFrom(); }
     public String getTo() { return message.getTo(); }
     public String getData() { return message.getData(); }
@@ -89,9 +86,10 @@ public class ChronoChatMessage implements Parcelable {
         return formatter.format(date);
     }
 
+
     /* Parcelable implementation  */
 
-    protected ChronoChatMessage(Parcel in) {
+    private ChronoChatMessage(Parcel in) {
         int arrayLength = in.readInt();
         byte[] messageBytes = new byte[arrayLength];
         in.readByteArray(messageBytes);
