@@ -7,6 +7,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.net.ConnectivityManager;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.ActionBar;
@@ -47,6 +48,9 @@ public class MainActivity extends AppCompatActivity {
                     String[] roster = intent.getStringArrayExtra(ChronoChatService.EXTRA_ROSTER);
                     showRoster(roster);
                     break;
+                case ConnectivityManager.CONNECTIVITY_ACTION:
+                    handleNetworkChange();
+                    break;
             }
         }
     }
@@ -65,7 +69,8 @@ public class MainActivity extends AppCompatActivity {
     private ArrayList<ChronoChatMessage> messageList = new ArrayList<>();
     private MessagesAdapter messageListAdapter;
     private String username, chatroom, prefix, hub;
-    private boolean activityVisible = false;
+    private boolean activityVisible = false,
+        shouldTryReconnectingOnNetworkChange = false;
     private LocalBroadcastReceiver broadcastReceiver;
 
     @Override
@@ -110,6 +115,9 @@ public class MainActivity extends AppCompatActivity {
         LocalBroadcastManager.getInstance(this).registerReceiver(
                 broadcastReceiver,
                 intentFilter);
+        intentFilter = new IntentFilter();
+        intentFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
+        getApplicationContext().registerReceiver(broadcastReceiver, intentFilter);
     }
 
     @Override
@@ -143,8 +151,7 @@ public class MainActivity extends AppCompatActivity {
                 data.getStringExtra(ChronoChatService.EXTRA_PREFIX),
                 data.getStringExtra(ChronoChatService.EXTRA_HUB));
 
-        ChronoChatMessage join = new ChronoChatMessage(username, chatroom, ChatMessageType.JOIN);
-        sendMessage(join);
+        joinChatroom();
     }
 
     private void setLoginInfo(String username, String chatroom, String prefix, String hub) {
@@ -214,10 +221,22 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void joinChatroom() {
+        ChronoChatMessage join = new ChronoChatMessage(username, chatroom, ChatMessageType.JOIN);
+        sendMessage(join);
+        shouldTryReconnectingOnNetworkChange = false;
+    }
+
     private void leaveChatroom() {
         ChronoChatMessage leave = new ChronoChatMessage(username, chatroom, ChatMessageType.LEAVE);
         sendMessage(leave);
         launchLoginActivity();
+    }
+
+    private void pretendToLeaveChatroom() {
+        ChronoChatMessage leave = new ChronoChatMessage(username, chatroom, ChatMessageType.LEAVE);
+        messageListAdapter.addMessageToView(leave);
+        shouldTryReconnectingOnNetworkChange = true;
     }
 
     private void requestRoster() {
@@ -306,6 +325,14 @@ public class MainActivity extends AppCompatActivity {
         dialog.show(getFragmentManager(), "RosterDialogFragment");
     }
 
+    private void handleNetworkChange() {
+        Log.d(TAG, "network change detected");
+        if (loginInfoIsSet() && shouldTryReconnectingOnNetworkChange) {
+            joinChatroom();
+        }
+
+    }
+
     private void handleError(Intent intent) {
         ErrorCode errorCode =
                 (ErrorCode) intent.getSerializableExtra(ChronoSyncService.EXTRA_ERROR_CODE);
@@ -313,13 +340,15 @@ public class MainActivity extends AppCompatActivity {
         boolean shouldClearLogin = true;
         switch (errorCode) {
             case NFD_PROBLEM:
+                shouldClearLogin = false;
                 toastText = getString(R.string.error_nfd);
+                pretendToLeaveChatroom();
                 break;
             case TRY_RECONNECT:
                 shouldClearLogin = false;
                 toastText = "Network change detected, trying to reconnect...";
-                ChronoChatMessage join = new ChronoChatMessage(username, chatroom, ChatMessageType.JOIN);
-                sendMessage(join);
+                pretendToLeaveChatroom();
+                handleNetworkChange();
                 break;
             case OTHER_EXCEPTION:
                 toastText = getString(R.string.error_other);
