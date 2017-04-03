@@ -128,9 +128,8 @@ public class ChronoChatService extends ChronoSyncService {
     }
 
     @Override
-    protected void raiseError(String logMessage, ErrorCode code) {
+    protected void doApplicationCleanup() {
         prepareToLeaveChat();
-        super.raiseError(logMessage, code);
     }
 
     protected void sendMessage(byte[] data, final String prefix, final String hub) {

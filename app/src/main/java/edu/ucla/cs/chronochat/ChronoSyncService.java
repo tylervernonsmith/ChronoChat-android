@@ -87,7 +87,8 @@ public abstract class ChronoSyncService extends Service {
                 }
             }
             broadcastIntentIfErrorRaised();
-            cleanup();
+            doApplicationCleanup();
+            doFinalCleanup();
             Log.d(TAG, "network thread stopped");
         }
     });
@@ -160,7 +161,7 @@ public abstract class ChronoSyncService extends Service {
         }
     }
 
-    private void cleanup() {
+    private void doFinalCleanup() {
         Log.d(TAG, "cleaning up and resetting service...");
         syncInitialized = false;
         if (sync != null) sync.shutdown();
@@ -170,6 +171,8 @@ public abstract class ChronoSyncService extends Service {
         raisedErrorCode = null;
         Log.d(TAG, "service cleanup/reset complete");
     }
+
+    protected abstract void doApplicationCleanup();
 
     private void initializeKeyChain() {
         Log.d(TAG, "initializing keychain");
