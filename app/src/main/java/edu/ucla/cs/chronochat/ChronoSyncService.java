@@ -86,7 +86,6 @@ public abstract class ChronoSyncService extends Service {
                     raiseError("error in processEvents loop", ErrorCode.OTHER_EXCEPTION, e);
                 }
             }
-            doApplicationCleanup();
             doFinalCleanup();
             handleAnyRaisedError();
             Log.d(TAG, "network thread stopped");
@@ -170,8 +169,6 @@ public abstract class ChronoSyncService extends Service {
         sync = null;
         Log.d(TAG, "service cleanup/reset complete");
     }
-
-    protected abstract void doApplicationCleanup();
 
     private void initializeKeyChain() {
         Log.d(TAG, "initializing keychain");

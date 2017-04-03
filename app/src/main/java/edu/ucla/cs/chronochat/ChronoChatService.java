@@ -127,11 +127,6 @@ public class ChronoChatService extends ChronoSyncService {
         expressZombieTimeoutInterest();
     }
 
-    @Override
-    protected void doApplicationCleanup() {
-        prepareToLeaveChat();
-    }
-
     protected void sendMessage(byte[] data, final String prefix, final String hub) {
 
         ChronoChatMessage message = new ChronoChatMessage(data);
