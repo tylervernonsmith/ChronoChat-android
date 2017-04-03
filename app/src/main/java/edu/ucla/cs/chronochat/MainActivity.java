@@ -319,15 +319,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void handleNetworkChange(Intent intent) {
         Log.d(TAG, "network change detected");
-        boolean noConnectivity = intent.getBooleanExtra(ConnectivityManager.EXTRA_NO_CONNECTIVITY, false);
-        if (noConnectivity) {
-            Log.d(TAG, "system reports no connectivity");
-        } else if (tryReconnecting && loginInfoIsSet()) {
-            tryReconnecting = false;
-            Log.d(TAG, "system reports network connectivity; attempting to reconnect to chatroom");
-            ChronoChatMessage join = new ChronoChatMessage(username, chatroom, ChatMessageType.JOIN);
-            sendMessage(join);
-        }
+        tryReconnecting = true;
     }
 
     private void handleError(Intent intent) {
@@ -337,14 +329,14 @@ public class MainActivity extends AppCompatActivity {
         boolean shouldShowLogin = false;
         switch (errorCode) {
             case NFD_PROBLEM:
-                toastText = getString(R.string.error_nfd);
-                //tryReconnecting = true;
-                Context context = getApplicationContext();
-                ConnectivityManager connManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-                NetworkInfo activeNetworkInfo = connManager.getActiveNetworkInfo();
-                if (activeNetworkInfo != null && activeNetworkInfo.isConnected() && loginInfoIsSet()) {
+                if (tryReconnecting && loginInfoIsSet()) {
+                    toastText = "Network change detected, trying to reconnect...";
+                    tryReconnecting = false;
                     ChronoChatMessage join = new ChronoChatMessage(username, chatroom, ChatMessageType.JOIN);
                     sendMessage(join);
+                } else {
+                    toastText = getString(R.string.error_nfd);
+                    shouldShowLogin = true;
                 }
                 break;
             case OTHER_EXCEPTION:
