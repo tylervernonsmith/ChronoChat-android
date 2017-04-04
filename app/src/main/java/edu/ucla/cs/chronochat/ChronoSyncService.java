@@ -148,6 +148,10 @@ public abstract class ChronoSyncService extends Service {
         networkThreadShouldStop = true;
     }
 
+    protected boolean networkThreadIsRunning() {
+        return networkThread.isAlive();
+    }
+
     private void stopNetworkThreadAndBlockUntilDone() {
         stopNetworkThread();
         Log.d(TAG, "waiting for network thread to stop...");
