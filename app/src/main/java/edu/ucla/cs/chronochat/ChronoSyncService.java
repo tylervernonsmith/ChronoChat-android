@@ -211,8 +211,8 @@ public abstract class ChronoSyncService extends Service {
             face.registerPrefix(dataPrefix, OnDataInterest,
                     OnDataPrefixRegisterFailed, OnDataPrefixRegisterSuccess);
         } catch (IOException | SecurityException e) {
-            Log.d(TAG, "exception registering data prefix"); // will also be handled in callback
-            stopNetworkThread(); // just in case
+            // should also be handled in callback, but in just in case...
+            raiseError("exception registering data prefix", ErrorCode.NFD_PROBLEM, e);
         }
 
     }
@@ -224,8 +224,8 @@ public abstract class ChronoSyncService extends Service {
                     keyChain.getDefaultCertificateName(), SYNC_LIFETIME,
                     OnBroadcastPrefixRegisterFailed);
         } catch (IOException | SecurityException e) {
-            Log.d(TAG, "exception setting up ChronoSync"); // will also be handled in callback
-            stopNetworkThread(); // just in case
+            // should also be handled in callback, but in just in case...
+            raiseError("exception setting up ChronoSync", ErrorCode.NFD_PROBLEM, e);
         }
     }
 
