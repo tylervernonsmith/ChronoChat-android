@@ -67,8 +67,7 @@ public class MainActivity extends AppCompatActivity {
     private ArrayList<ChronoChatMessage> messageList = new ArrayList<>();
     private MessagesAdapter messageListAdapter;
     private String username, chatroom, prefix, hub;
-    private boolean activityVisible = false,
-            joinedChatroom = false;
+    private boolean activityVisible = false;
     private LocalBroadcastReceiver broadcastReceiver;
 
     @Override
@@ -224,12 +223,10 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG, "joinChatroom(): sending JOIN");
         ChronoChatMessage join = new ChronoChatMessage(username, chatroom, ChatMessageType.JOIN);
         sendMessage(join);
-        joinedChatroom = true;
     }
 
     private void leaveChatroom() {
-        if (loginInfoIsSet() && joinedChatroom) {
-            joinedChatroom = false;
+        if (loginInfoIsSet()) {
             ChronoChatMessage leave = new ChronoChatMessage(username, chatroom,
                     ChatMessageType.LEAVE);
             sendMessage(leave);
@@ -251,8 +248,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void sendMessage(View view) {
-        if (!joinedChatroom) return;
-
         Editable messageField = editMessage.getText();
         String text = messageField.toString();
         if (text.equals("")) return;
@@ -332,7 +327,6 @@ public class MainActivity extends AppCompatActivity {
             handler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
-                    if (joinedChatroom) return;
                     Toast.makeText(getApplicationContext(), getString(R.string.reconnecting),
                             Toast.LENGTH_SHORT).show();
                     joinChatroom();
@@ -342,7 +336,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void handleError(Intent intent) {
-        joinedChatroom = false;
         ErrorCode errorCode =
                 (ErrorCode) intent.getSerializableExtra(ChronoSyncService.EXTRA_ERROR_CODE);
         String toastText = null;
