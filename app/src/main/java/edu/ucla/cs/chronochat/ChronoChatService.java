@@ -25,6 +25,9 @@ public class ChronoChatService extends ChronoSyncService {
 
     private static final String TAG = "ChronoChatService";
 
+    private static final int HEARTBEAT_TIMEOUT = 10000,
+                             ZOMBIE_TIMEOUT = 120000;
+
     public static final String EXTRA_USERNAME = INTENT_PREFIX + "EXTRA_USERNAME",
                                EXTRA_CHATROOM = INTENT_PREFIX + "EXTRA_CHATROOM",
                                EXTRA_PREFIX = INTENT_PREFIX + "EXTRA_PREFIX",
@@ -242,13 +245,13 @@ public class ChronoChatService extends ChronoSyncService {
 
     private void expressHeartbeatInterest() {
         Log.d(TAG, "(re)starting heartbeat timeout");
-        heartbeatInterestID = expressTimeoutInterest(OnHeartBeatTimeout, 10000,
+        heartbeatInterestID = expressTimeoutInterest(OnHeartBeatTimeout, HEARTBEAT_TIMEOUT,
                 "error setting up heartbeat");
     }
 
     private void expressZombieTimeoutInterest() {
         Log.d(TAG, "(re)starting zombie timeout");
-        zombieTimeoutInterestID = expressTimeoutInterest(OnZombieTimeout, 120000,
+        zombieTimeoutInterestID = expressTimeoutInterest(OnZombieTimeout, ZOMBIE_TIMEOUT,
                 "error setting up zombie timeout");
     }
 
