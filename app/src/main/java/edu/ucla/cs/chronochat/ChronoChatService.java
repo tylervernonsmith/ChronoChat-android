@@ -88,9 +88,10 @@ public class ChronoChatService extends ChronoSyncService {
                     break;
                 case ACTION_GET_ROSTER:
                     broadcastRoster();
+                    if (!networkThreadIsRunning())
+                        stopSelf();
                     break;
                 case ACTION_STOP:
-                    prepareToLeaveChat();
                     stopSelf();
                     break;
             }
@@ -101,12 +102,15 @@ public class ChronoChatService extends ChronoSyncService {
 
     @Override
     public void onDestroy() {
-        super.onDestroy();
-        for (String user : roster.keySet()) {
-            // fake LEAVE messages for everyone in roster
-            byte[] leave = getControlMessage(ChatMessageType.LEAVE, user);
-            broadcastReceivedMessage(leave);
+        if (loginInfoIsSet() && roster != null) {
+            for (String user : roster.keySet()) {
+                // fake LEAVE messages for everyone in roster
+                byte[] leave = getControlMessage(ChatMessageType.LEAVE, user);
+                broadcastReceivedMessage(leave);
+            }
         }
+        prepareToLeaveChat();
+        super.onDestroy();
     }
 
     @Override
@@ -163,7 +167,7 @@ public class ChronoChatService extends ChronoSyncService {
         final String username = message.getFrom(),
                 chatroom = message.getTo();
 
-        if (!loginInfoIsSet() ||
+        if (!networkThreadIsRunning() || !loginInfoIsSet() ||
                 !activeUsername.equals(username) || !activeChatroom.equals(chatroom) ||
                 !activePrefix.equals(prefix) || !activeHub.equals(hub)) {
 
