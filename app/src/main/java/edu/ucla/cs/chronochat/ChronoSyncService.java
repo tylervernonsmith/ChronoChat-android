@@ -454,6 +454,7 @@ public abstract class ChronoSyncService extends Service {
         public void onTimeout(Interest interest) {
             Name name = interest.getName();
             Log.d(TAG, "timed out waiting for " + name);
+            expressDataInterest(name);
         }
     };
 
@@ -462,6 +463,7 @@ public abstract class ChronoSyncService extends Service {
         public void onNetworkNack(Interest interest, NetworkNack networkNack) {
             Name name = interest.getName();
             Log.d(TAG, "received NACK for " + name);
+            expressDataInterest(name);
         }
     };
 }
