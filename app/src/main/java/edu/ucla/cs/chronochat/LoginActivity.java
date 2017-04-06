@@ -14,7 +14,7 @@ public class LoginActivity extends AppCompatActivity {
 
     private static final String TAG = "LoginActivity";
 
-    private EditText username, chatroom, prefix, hub;
+    private EditText username, chatroom, prefix;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -23,11 +23,9 @@ public class LoginActivity extends AppCompatActivity {
         username = (EditText) findViewById(R.id.username);
         chatroom = (EditText) findViewById(R.id.chatroom);
         prefix = (EditText) findViewById(R.id.prefix);
-        hub = (EditText) findViewById(R.id.hub);
 
         chatroom.setText(getString(R.string.default_chatroom));
         prefix.setText(getString(R.string.default_prefix));
-        hub.setText(getString(R.string.default_hub));
     }
 
     @Override
@@ -54,20 +52,19 @@ public class LoginActivity extends AppCompatActivity {
     public void onSignIn(View view) {
         final String username = this.username.getText().toString().trim(),
                      chatroom = this.chatroom.getText().toString().trim(),
-                     prefix = this.prefix.getText().toString().trim(),
-                     hub = this.hub.getText().toString().trim();
+                     prefix = this.prefix.getText().toString().trim();
 
-        if (username.equals("") || chatroom.equals("") || prefix.equals("") || hub.equals(""))
+        if (username.equals("") || chatroom.equals("") || prefix.equals(""))
             return;
 
         Log.d(TAG, "username = \"" + username + "\", chatroom = \"" + chatroom + "\", prefix = \"" +
-                prefix + "\"" + ", hub = \"" + hub + "\"");
+                prefix + "\"");
 
         Intent intent = new Intent(this, MainActivity.class);
         intent.putExtra(ChronoChatService.EXTRA_USERNAME, username)
                 .putExtra(ChronoChatService.EXTRA_CHATROOM, chatroom)
                 .putExtra(ChronoChatService.EXTRA_PREFIX, prefix)
-                .putExtra(ChronoChatService.EXTRA_HUB, hub);
+                .putExtra(ChronoChatService.EXTRA_HUB, getString(R.string.hub_uri));
 
         setResult(RESULT_OK, intent);
         finish();
