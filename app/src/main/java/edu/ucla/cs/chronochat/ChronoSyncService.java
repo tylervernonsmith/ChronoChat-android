@@ -36,6 +36,8 @@ public abstract class ChronoSyncService extends Service {
 
     private static final String TAG = "ChronoSyncService";
     private static final double SYNC_LIFETIME = 5000.0;
+    private static final boolean RETRIEVE_STALE_MESSAGES_BY_DEFAULT = false,
+                                 ENSURE_IN_ORDER_DELIVERY_BY_DEFAULT = true;
 
     /* Intent constants */
     public static final String
@@ -94,7 +96,7 @@ public abstract class ChronoSyncService extends Service {
 
 
     public ChronoSyncService() {
-        this(false, true);
+        this(RETRIEVE_STALE_MESSAGES_BY_DEFAULT, ENSURE_IN_ORDER_DELIVERY_BY_DEFAULT);
     }
 
     public ChronoSyncService(boolean shouldRetrieveStaleData, boolean shouldEnsureInOrderDelivery) {
