@@ -56,7 +56,6 @@ public class MainActivity extends AppCompatActivity {
                                 SAVED_USERNAME = TAG + ".username",
                                 SAVED_CHATROOM = TAG + ".chatroom",
                                 SAVED_PREFIX = TAG + ".prefix",
-                                SAVED_HUB = TAG + ".hub",
                                 SAVED_MESSAGES = TAG + ".messages";
 
     private static final int NOTIFICATION_ID = 0,
@@ -66,7 +65,7 @@ public class MainActivity extends AppCompatActivity {
     private EditText editMessage;
     private ArrayList<ChronoChatMessage> messageList = new ArrayList<>();
     private MessagesAdapter messageListAdapter;
-    private String username, chatroom, prefix, hub;
+    private String username, chatroom, prefix;
     private boolean activityVisible = false;
     private LocalBroadcastReceiver broadcastReceiver;
 
@@ -88,8 +87,7 @@ public class MainActivity extends AppCompatActivity {
             Log.d(TAG, "restoring saved instance state");
             setLoginInfo(savedInstanceState.getString(SAVED_USERNAME),
                     savedInstanceState.getString(SAVED_CHATROOM),
-                    savedInstanceState.getString(SAVED_PREFIX),
-                    savedInstanceState.getString(SAVED_HUB));
+                    savedInstanceState.getString(SAVED_PREFIX));
             ArrayList<ChronoChatMessage> savedMessages =
                     savedInstanceState.getParcelableArrayList(SAVED_MESSAGES);
             if (savedMessages != null)
@@ -142,17 +140,15 @@ public class MainActivity extends AppCompatActivity {
 
         setLoginInfo(data.getStringExtra(ChronoChatService.EXTRA_USERNAME),
                 data.getStringExtra(ChronoChatService.EXTRA_CHATROOM),
-                data.getStringExtra(ChronoChatService.EXTRA_PREFIX),
-                data.getStringExtra(ChronoChatService.EXTRA_HUB));
+                data.getStringExtra(ChronoChatService.EXTRA_PREFIX));
 
         joinChatroom();
     }
 
-    private void setLoginInfo(String username, String chatroom, String prefix, String hub) {
+    private void setLoginInfo(String username, String chatroom, String prefix) {
         this.username = username;
         this.chatroom = chatroom;
         this.prefix = prefix;
-        this.hub = hub;
 
         messageListAdapter.setLoggedInUsername(username);
 
@@ -186,7 +182,6 @@ public class MainActivity extends AppCompatActivity {
         savedState.putString(SAVED_USERNAME, username);
         savedState.putString(SAVED_CHATROOM, chatroom);
         savedState.putString(SAVED_PREFIX, prefix);
-        savedState.putString(SAVED_HUB, hub);
         savedState.putParcelableArrayList(SAVED_MESSAGES, messageList);
         super.onSaveInstanceState(savedState);
     }
@@ -263,8 +258,7 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(this, ChronoChatService.class);
         intent.setAction(ChronoChatService.ACTION_SEND)
               .putExtra(ChronoChatService.EXTRA_MESSAGE, message.toByteArray())
-              .putExtra(ChronoChatService.EXTRA_PREFIX, prefix)
-              .putExtra(ChronoChatService.EXTRA_HUB, hub);
+              .putExtra(ChronoChatService.EXTRA_PREFIX, prefix);
         startService(intent);
     }
 
@@ -363,11 +357,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private boolean loginInfoIsSet() {
-        return (username != null && chatroom != null && prefix != null && hub != null);
+        return (username != null && chatroom != null && prefix != null);
     }
 
     private void clearLoginInfo() {
-        username = chatroom = prefix = hub = null;
+        username = chatroom = prefix;
     }
 }
 

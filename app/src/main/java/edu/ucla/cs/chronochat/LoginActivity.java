@@ -63,8 +63,7 @@ public class LoginActivity extends AppCompatActivity {
         Intent intent = new Intent(this, MainActivity.class);
         intent.putExtra(ChronoChatService.EXTRA_USERNAME, username)
                 .putExtra(ChronoChatService.EXTRA_CHATROOM, chatroom)
-                .putExtra(ChronoChatService.EXTRA_PREFIX, prefix)
-                .putExtra(ChronoChatService.EXTRA_HUB, getString(R.string.hub_uri));
+                .putExtra(ChronoChatService.EXTRA_PREFIX, prefix);
 
         setResult(RESULT_OK, intent);
         finish();

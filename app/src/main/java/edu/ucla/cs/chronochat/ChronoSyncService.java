@@ -120,11 +120,11 @@ public abstract class ChronoSyncService extends Service {
     public IBinder onBind(Intent intent) { return null; }
 
 
-    protected void initializeService(String hub, String dataPrefixStr, String broadcastPrefixStr,
+    protected void initializeService(String dataPrefixStr, String broadcastPrefixStr,
                                      byte[] initialData) {
         Log.d(TAG, "(re)initializing service...");
         stopNetworkThreadAndBlockUntilDone();
-        face = new Face(hub);
+        face = new Face(getString(R.string.face_uri));
         dataPrefix = new Name(dataPrefixStr);
         broadcastPrefix = new Name(broadcastPrefixStr);
         nextSeqNumToRequest = new HashMap<>();

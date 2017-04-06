@@ -11,7 +11,7 @@
     <string name="broadcast_base_prefix">/ndn/broadcast</string>
     <string name="default_chatroom">ndnchat</string>
     <string name="default_prefix">/ndn/edu/ucla/remap</string>
-    <string name="hub_uri">localhost</string>
+    <string name="face_uri">localhost</string>
     <string name="uri_separator">/</string>
     <string name="error_nfd">ChronoChat is having trouble communicating with the NDN system. If this continues, please make sure NFD is running.</string>
     <string name="error_other">Sorry, a ChronoChat error has occurred. Please check the debug log.</string>
