@@ -7,7 +7,6 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.os.Handler;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.ActionBar;
@@ -58,8 +57,7 @@ public class MainActivity extends AppCompatActivity {
                                 SAVED_PREFIX = TAG + ".prefix",
                                 SAVED_MESSAGES = TAG + ".messages";
 
-    private static final int NOTIFICATION_ID = 0,
-                             RECONNECT_DELAY = 5000;
+    private static final int NOTIFICATION_ID = 0;
     public static final int SERVICE_NOTIFICATION_ID = 1;
 
     private EditText editMessage;
@@ -314,46 +312,25 @@ public class MainActivity extends AppCompatActivity {
         dialog.show(getFragmentManager(), "RosterDialogFragment");
     }
 
-    private void reconnectAfterDelay() {
-        if (loginInfoIsSet()) {
-            Log.d(TAG, "queuing delayed reconnection");
-            Handler handler = new Handler();
-            handler.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    Toast.makeText(getApplicationContext(), getString(R.string.reconnecting),
-                            Toast.LENGTH_SHORT).show();
-                    joinChatroom();
-                }
-            }, RECONNECT_DELAY);
-        }
-    }
-
     private void handleError(Intent intent) {
         ErrorCode errorCode =
                 (ErrorCode) intent.getSerializableExtra(ChronoSyncService.EXTRA_ERROR_CODE);
         String toastText = null;
-        boolean shouldClearLogin = false;
 
         switch (errorCode) {
             case NFD_PROBLEM:
-                shouldClearLogin = false;
                 toastText = getString(R.string.error_nfd);
-                reconnectAfterDelay();
                 break;
             case OTHER_EXCEPTION:
-                shouldClearLogin = true;
                 toastText = getString(R.string.error_other);
                 break;
         }
 
         Toast.makeText(getApplicationContext(), toastText, Toast.LENGTH_LONG).show();
 
-        if (shouldClearLogin) {
-            clearLoginInfo();
-            if (activityVisible)
-                launchLoginActivity();
-        }
+        clearLoginInfo();
+        if (activityVisible)
+            launchLoginActivity();
     }
 
     private boolean loginInfoIsSet() {
