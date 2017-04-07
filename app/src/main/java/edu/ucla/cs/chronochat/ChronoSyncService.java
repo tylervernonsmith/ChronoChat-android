@@ -36,8 +36,7 @@ public abstract class ChronoSyncService extends Service {
 
     private static final String TAG = "ChronoSyncService";
     private static final double SYNC_LIFETIME = 5000.0;
-    private static final boolean RETRIEVE_STALE_MESSAGES_BY_DEFAULT = false,
-                                 ENSURE_IN_ORDER_DELIVERY_BY_DEFAULT = true;
+    private static final boolean RETRIEVE_STALE_MESSAGES_BY_DEFAULT = false;
 
     /* Intent constants */
     public static final String
@@ -55,11 +54,9 @@ public abstract class ChronoSyncService extends Service {
     private ChronoSync2013 sync;
     private boolean networkThreadShouldStop,
                     syncInitialized = false;
-    private final boolean shouldRetrieveStaleData, shouldEnsureInOrderDelivery;
+    private final boolean shouldRetrieveStaleData;
     private KeyChain keyChain;
     private HashMap<String, Long> nextSeqNumToRequest;
-    private HashMap<Name, Long> lastSeqNumDelivered;
-    private HashMap<Name, byte[]> receivedDataCache;
     private ArrayList<byte[]> sentData;
     private int session;
 
@@ -96,12 +93,11 @@ public abstract class ChronoSyncService extends Service {
 
 
     public ChronoSyncService() {
-        this(RETRIEVE_STALE_MESSAGES_BY_DEFAULT, ENSURE_IN_ORDER_DELIVERY_BY_DEFAULT);
+        this(RETRIEVE_STALE_MESSAGES_BY_DEFAULT);
     }
 
-    public ChronoSyncService(boolean shouldRetrieveStaleData, boolean shouldEnsureInOrderDelivery) {
+    public ChronoSyncService(boolean shouldRetrieveStaleData) {
         this.shouldRetrieveStaleData = shouldRetrieveStaleData;
-        this.shouldEnsureInOrderDelivery = shouldEnsureInOrderDelivery;
     }
 
 
@@ -130,8 +126,6 @@ public abstract class ChronoSyncService extends Service {
         dataPrefix = new Name(dataPrefixStr);
         broadcastPrefix = new Name(broadcastPrefixStr);
         nextSeqNumToRequest = new HashMap<>();
-        lastSeqNumDelivered = new HashMap<>();
-        receivedDataCache = new HashMap<>();
         sentData = new ArrayList<>();
         session = (int) (System.currentTimeMillis() / 1000);
         send(initialData);
@@ -322,40 +316,6 @@ public abstract class ChronoSyncService extends Service {
     private int nextDataSeqNum() { return sentData.size(); }
     private long nextSyncSeqNum() { return sync.getSequenceNo() + 1; }
 
-    private void processReceivedData(Name name, byte[] content) {
-        Name syncDataId = name.getPrefix(-1);
-        Name.Component seqNumComponent = name.get(-1);
-        Long seqNum = Long.parseLong(seqNumComponent.toEscapedString());
-
-        if (shouldEnsureInOrderDelivery) {
-            Log.d(TAG, "caching " + name);
-            receivedDataCache.put(name, content);
-            deliverApplicationDataInOrder(syncDataId, seqNum);
-        } else {
-            deliverApplicationData(content, syncDataId, seqNum);
-        }
-    }
-
-    private void deliverApplicationDataInOrder(Name syncDataId, Long lastSeqNumCached) {
-        byte[] nextData;
-        do {
-            Long lastSeqNum = lastSeqNumDelivered.get(syncDataId),
-                    nextSeqNum = (lastSeqNum == null) ? lastSeqNumCached : lastSeqNum + 1;
-            Name nextDataName = (new Name(syncDataId)).append(nextSeqNum.toString());
-            nextData = receivedDataCache.remove(nextDataName);
-            if (nextData != null)
-                deliverApplicationData(nextData, syncDataId, nextSeqNum);
-        } while (nextData != null);
-    }
-
-    private void deliverApplicationData(byte[] data, Name syncDataId, Long seqNum) {
-        Name dataName = (new Name(syncDataId)).append(seqNum.toString());
-        Log.d(TAG, "delivering " + dataName + " to application");
-        if (shouldEnsureInOrderDelivery)
-            lastSeqNumDelivered.put(syncDataId, seqNum);
-        handleApplicationData(data);
-    }
-
     protected abstract void handleApplicationData(byte[] receivedData);
 
 
@@ -447,7 +407,7 @@ public abstract class ChronoSyncService extends Service {
             Name name = data.getName();
             byte[] content = data.getContent().getImmutableArray();
             Log.d(TAG, "received sync data for " + name);
-            processReceivedData(name, content);
+            handleApplicationData(content);
         }
     };
 
