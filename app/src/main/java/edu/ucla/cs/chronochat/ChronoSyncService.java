@@ -425,7 +425,6 @@ public abstract class ChronoSyncService extends Service {
         public void onNetworkNack(Interest interest, NetworkNack networkNack) {
             Name name = interest.getName();
             Log.d(TAG, "received NACK for " + name);
-            expressDataInterest(name);
         }
     };
 }
