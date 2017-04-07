@@ -36,7 +36,7 @@ public abstract class ChronoSyncService extends Service {
 
     private static final String TAG = "ChronoSyncService";
     private static final double SYNC_LIFETIME = 5000.0;
-    private static final boolean RETRIEVE_STALE_MESSAGES_BY_DEFAULT = false;
+    private static final boolean RETRIEVE_STALE_MESSAGES_BY_DEFAULT = true;
 
     /* Intent constants */
     public static final String
