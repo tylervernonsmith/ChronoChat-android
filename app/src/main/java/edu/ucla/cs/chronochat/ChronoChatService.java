@@ -216,7 +216,7 @@ public class ChronoChatService extends ChronoSyncService {
     }
 
     private void updateRoster(String from, ChatMessageType type, int timestamp) {
-        if (type == ChatMessageType.LEAVE) {
+        if (type == ChatMessageType.LEAVE && !from.equals(activeUsername)) {
             roster.remove(from);
         } else {
             roster.put(from, timestamp);
