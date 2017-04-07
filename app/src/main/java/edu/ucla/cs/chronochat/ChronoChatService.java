@@ -25,7 +25,7 @@ public class ChronoChatService extends ChronoSyncService {
 
     private static final String TAG = "ChronoChatService";
 
-    private static final int HEARTBEAT_TIMEOUT = 10000,
+    private static final int HEARTBEAT_TIMEOUT = 60000,
                              ZOMBIE_TIMEOUT = 120000;
 
     public static final String EXTRA_USERNAME = INTENT_PREFIX + "EXTRA_USERNAME",
