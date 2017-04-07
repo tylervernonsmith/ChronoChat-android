@@ -7,6 +7,7 @@ import android.util.Log;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import java.text.DateFormat;
+import java.util.Comparator;
 import java.util.Date;
 
 import edu.ucla.cs.chronochat.ChatbufProto.ChatMessage;
@@ -17,6 +18,14 @@ import edu.ucla.cs.chronochat.ChatbufProto.ChatMessage.ChatMessageType;
  *   but the Protobuf documentation warns against inheriting from generated message classes.
  */
 public class ChronoChatMessage implements Parcelable {
+
+    public static final Comparator<ChronoChatMessage> timestampOrder =
+            new Comparator<ChronoChatMessage>() {
+        @Override
+        public int compare(ChronoChatMessage a, ChronoChatMessage b) {
+            return a.getTimestamp() - b.getTimestamp();
+        }
+    };
 
     private static final String TAG = "ChronoChatMessage";
 
@@ -85,7 +94,6 @@ public class ChronoChatMessage implements Parcelable {
         DateFormat formatter = DateFormat.getTimeInstance();
         return formatter.format(date);
     }
-
 
     /* Parcelable implementation  */
 
