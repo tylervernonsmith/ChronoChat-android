@@ -131,7 +131,9 @@ public class ChronoChatService extends ChronoSyncService {
 
         fakeJoinMessageIfNeeded(from, type);
         updateRoster(from, type, timestamp);
-        broadcastReceivedMessage(receivedData);
+        if (type == ChatMessageType.JOIN || type == ChatMessageType.CHAT ||
+                type == ChatMessageType.LEAVE)
+            broadcastReceivedMessage(receivedData);
     }
 
     @Override
@@ -225,6 +227,7 @@ public class ChronoChatService extends ChronoSyncService {
         Intent bcast = new Intent(BCAST_RECEIVED_MSG);
         bcast.putExtra(EXTRA_MESSAGE, message);
         LocalBroadcastManager.getInstance(this).sendBroadcast(bcast);
+
     }
 
     private void broadcastRoster() {
