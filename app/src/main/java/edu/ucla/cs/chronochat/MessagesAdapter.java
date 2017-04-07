@@ -2,6 +2,7 @@ package edu.ucla.cs.chronochat;
 
 import android.content.Context;
 import android.support.annotation.NonNull;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -9,6 +10,8 @@ import android.widget.ArrayAdapter;
 import android.widget.TextView;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
 
 import edu.ucla.cs.chronochat.ChatbufProto.ChatMessage.ChatMessageType;
 
@@ -18,6 +21,8 @@ class MessagesAdapter extends ArrayAdapter<ChronoChatMessage> {
     private static class ViewHolder {
         TextView usernameView, messageTextView;
     }
+
+    public static final String TAG = "MessagesAdapter";
 
     private String loggedInUsername;
     private static final int TYPE_SENT_MESSAGE_WITH_USERNAME = 0,
@@ -29,6 +34,8 @@ class MessagesAdapter extends ArrayAdapter<ChronoChatMessage> {
 
     MessagesAdapter(Context context, ArrayList<ChronoChatMessage> messages) {
         super(context, 0, messages);
+        // We want full control over notifyDataSetChanged() to prevent unnecessary calls when sorting
+        setNotifyOnChange(false);
     }
 
     @Override
@@ -90,6 +97,68 @@ class MessagesAdapter extends ArrayAdapter<ChronoChatMessage> {
         return view;
     }
 
+    @Override
+    public void add(ChronoChatMessage message) {
+        int itemCount = getCount();
+        ChronoChatMessage lastMessage = null;
+        if (itemCount > 0) lastMessage = getItem(itemCount - 1);
+        super.add(message);
+        // Avoid re-sorting if we're clearly adding a new message to the end of the list
+        if (lastMessage != null &&
+                ChronoChatMessage.timestampOrder.compare(message, lastMessage) >= 0) {
+            notifyDataSetChanged();
+        } else {
+            sortByTimestamp();
+        }
+    }
+
+    @Override
+    public void addAll(ChronoChatMessage[] messages) {
+        super.addAll(messages);
+        sortByTimestamp();
+    }
+
+    @Override
+    public void addAll(Collection<? extends ChronoChatMessage> messages) {
+        super.addAll(messages);
+        sortByTimestamp();
+    }
+
+    @Override
+    public void insert(ChronoChatMessage message, int index) {
+        super.insert(message, index);
+        sortByTimestamp();
+    }
+
+    @Override
+    public void remove(ChronoChatMessage message) {
+        super.remove(message);
+        notifyDataSetChanged();
+    }
+
+    @Override
+    public void clear() {
+        super.clear();
+        notifyDataSetChanged();
+    }
+
+    @Override
+    public void sort(Comparator<? super ChronoChatMessage> comparator) {
+        super.sort(comparator);
+        notifyDataSetChanged();
+    }
+
+    @Override
+    public void notifyDataSetChanged() {
+        Log.d(TAG, "notifyDataSetChanged()");
+        super.notifyDataSetChanged();
+        setNotifyOnChange(false); // this flag gets reset to "true" by the superclass method
+    }
+
+    public void sortByTimestamp() {
+        sort(ChronoChatMessage.timestampOrder);
+    }
+
     private View getInflatedView(int position, ViewGroup parent) {
         int type = getItemViewType(position), layout;
         switch (type) {
@@ -110,10 +179,4 @@ class MessagesAdapter extends ArrayAdapter<ChronoChatMessage> {
     }
 
     void setLoggedInUsername(String username) { loggedInUsername = username; }
-
-    void addMessageToView(ChronoChatMessage message) {
-        if (message.getType() == ChatMessageType.HELLO) return;
-        add(message);
-        notifyDataSetChanged();
-    }
 }

@@ -133,8 +133,7 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        messageList.clear();
-        messageListAdapter.notifyDataSetChanged();
+        messageListAdapter.clear();
 
         setLoginInfo(data.getStringExtra(ChronoChatService.EXTRA_USERNAME),
                 data.getStringExtra(ChronoChatService.EXTRA_CHATROOM),
@@ -252,7 +251,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void sendMessage(ChronoChatMessage message) {
-        messageListAdapter.addMessageToView(message);
+        messageListAdapter.add(message);
         Intent intent = new Intent(this, ChronoChatService.class);
         intent.setAction(ChronoChatService.ACTION_SEND)
               .putExtra(ChronoChatService.EXTRA_MESSAGE, message.toByteArray())
@@ -265,7 +264,7 @@ public class MainActivity extends AppCompatActivity {
         ChronoChatMessage message = new ChronoChatMessage(encodedMessage);
         Log.d(TAG, "received message from " + message.getFrom());
         showNotification(message);
-        messageListAdapter.addMessageToView(message);
+        messageListAdapter.add(message);
     }
 
     private void showNotification(ChronoChatMessage message) {
